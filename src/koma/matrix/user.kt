@@ -1,7 +1,6 @@
 package koma.matrix
 
 import koma.matrix.json.NewTypeString
-import koma.storage.users.UserStore
 
 data class UserId(private val input: String): NewTypeString(input), Comparable<UserId> {
 
@@ -15,7 +14,5 @@ data class UserId(private val input: String): NewTypeString(input), Comparable<U
     }
 
     override fun compareTo(other: UserId): Int = this.str.compareTo(other.str)
-
-    fun getState() = UserStore.getOrCreateUserId(this)
 }
 

@@ -1,12 +1,7 @@
 package controller
 
-import koma.controller.events_processing.processEventsResult
 import koma.controller.sync.startSyncing
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.javafx.JavaFx
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import matrix.ApiClient
 
@@ -23,13 +18,8 @@ class ChatController(
     }
 
     fun start() {
-        val start = if (apiClient.profile.hasRooms) apiClient.next_batch else null
+        val start = apiClient.next_batch
         val syncEventChannel = startSyncing(start, shutdownSignalChan)
-        GlobalScope.launch(Dispatchers.JavaFx) {
-            for (s in syncEventChannel) {
-                apiClient.profile.processEventsResult(s)
-            }
-        }
     }
 
     fun shutdown() {

@@ -2,10 +2,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.koma-im.koma</groupId>
-    <artifactId>koma</artifactId>
+    <artifactId>koma-library</artifactId>
     <packaging>jar</packaging>
     <version>0.7.3</version>
-    <name>koma</name>
+    <name>koma-library</name>
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -24,11 +24,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>no.tornado</groupId>
-            <artifactId>tornadofx</artifactId>
-            <version>1.7.17</version>
-        </dependency>
-        <dependency>
             <groupId>org.cache2k</groupId>
             <artifactId>cache2k-core</artifactId>
             <version>1.0.2.Final</version>
@@ -44,26 +39,6 @@
             <version>${retrofit.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.jensd</groupId>
-            <artifactId>fontawesomefx-fontawesome</artifactId>
-            <version>4.7.0-9.1.2</version>
-        </dependency>
-       <dependency>
-           <groupId>de.jensd</groupId>
-           <artifactId>fontawesomefx-materialicons</artifactId>
-           <version>2.2.0-9.1.2</version>
-       </dependency>
-        <dependency>
-            <groupId>de.jensd</groupId>
-            <artifactId>fontawesomefx-commons</artifactId>
-            <version>9.1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.controlsfx</groupId>
-            <artifactId>controlsfx</artifactId>
-            <version>9.0.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
             <version>${kotlinx.coroutine.version}</version>
@@ -72,11 +47,6 @@
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-javafx</artifactId>
             <version>${kotlinx.coroutine.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.vdurmont</groupId>
-            <artifactId>emoji-java</artifactId>
-            <version>4.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -102,11 +72,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.8.0-beta2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
             <version>1.8.0-beta2</version>
         </dependency>
     </dependencies>
@@ -155,27 +120,6 @@
                 </executions>
                 <configuration>
                     <jvmTarget>1.8</jvmTarget>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass>koma.koma_app.MainKt</mainClass>
-                        </manifest>
-                    </archive>
                 </configuration>
             </plugin>
             <plugin>
