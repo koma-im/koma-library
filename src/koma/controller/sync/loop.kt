@@ -1,15 +1,12 @@
 package koma.controller.sync
 
+import com.github.kittinunf.result.Result
+import com.github.kittinunf.result.success
 import koma.matrix.sync.SyncResponse
-import koma.util.coroutine.adapter.retrofit.HttpException
-import koma.util.coroutine.adapter.retrofit.MatrixException
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma_app.appState.chatController
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
+import koma_app.appState
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import mu.KotlinLogging
 import java.time.Instant
@@ -20,7 +17,7 @@ private val logger = KotlinLogging.logger {}
 val longPollTimeout = 50
 
 /**
- * if time flows at unusual rates, connection is unlikely to survive
+ * detect computer suspend and resume and restart sync
  */
 fun detectTimeLeap(): Channel<Unit> {
     val timeleapSignal = Channel<Unit>(Channel.CONFLATED)
@@ -30,7 +27,7 @@ fun detectTimeLeap(): Channel<Unit> {
             delay(1000000) // should be 1 sec
             val now = Instant.now().epochSecond
             if (now - prev > 2) {
-                println("detected time leap from $prev to $now")
+                logger.info { "System time leapt from $prev to $now" }
                 timeleapSignal.send(Unit)
             }
             prev = now
@@ -40,55 +37,65 @@ fun detectTimeLeap(): Channel<Unit> {
 }
 
 
-fun startSyncing(from: String?, shutdownChan: Channel<Unit>): Channel<SyncResponse> {
-    // maybe a little faster with buffer?
-    val sresChannel = Channel<SyncResponse>(3)
+/**
+ * get events using the sync api
+ * it stops when there is an exception
+ * it is up to the caller to restart the sync
+ */
+class MatrixSyncReceiver(var since: String?=null) {
+    /**
+     * channel of responses from the sync api
+     */
+    val events = Channel<Result<SyncResponse, Exception>>(3)
+    /**
+     * check whether the computer was not running for some time
+     */
+    private val timeCheck = detectTimeLeap()
+    /**
+     * stop syncing, returns true when it's stopped
+     */
+    private val shutdownChan = Channel<CompletableDeferred<Boolean>>()
 
-    var since = from
-    val client = chatController.apiClient
+    suspend fun stopSyncing() {
+        val complete = CompletableDeferred<Boolean>()
+        shutdownChan.send(complete)
+        complete.await()
+    }
+    fun startSyncing() {
+        val client = appState.apiClient
 
-    val timeCheck = detectTimeLeap()
-    GlobalScope.launch {
-        sync@ while (true) {
-            val ar = GlobalScope.async {  client.getEvents(since).awaitMatrix() }
-
-            val ss = select<SyncStatus> {
-                shutdownChan.onReceive { SyncStatus.Shutdown() }
-                timeCheck.onReceive { SyncStatus.Resync() }
-                ar.onAwait { it.inspect() }
-            }
-            when (ss) {
-                is SyncStatus.Shutdown -> {
-                    println("shutting down sync")
-                    ar.cancel()
-                    sresChannel.close()
-                    shutdownChan.send(Unit)
-                    break@sync
+        GlobalScope.launch {
+            sync@ while (true) {
+                val apiRes = async { client.getEvents(since).awaitMatrix() }
+                val ss = select<SyncStatus> {
+                    apiRes.onAwait { SyncStatus.Response(it) }
+                    shutdownChan.onReceive { i -> SyncStatus.Shutdown(i) }
+                    timeCheck.onReceive { SyncStatus.Resync() }
                 }
-                is SyncStatus.TransientFailure -> {
-                    val m = if (ss.exception is HttpException) {
-                        ss.exception.toStringShowBody()
-                    } else if (ss.exception is MatrixException) {
-                      ss.exception.fullerErrorMessage
-                    } else { "${ss.exception}"}
-                    logger.warn { "Exception during sync: $m" }
-                    delay(ss.delay)
-                    logger.debug { "restarting sync" }
-                }
-                is SyncStatus.Response -> {
-                    val r = ss.response
-                    sresChannel.send(r)
-                    since = r.next_batch
-                    client.next_batch = since
-                }
-                is SyncStatus.Resync -> {
-                    System.err.println("restarting sync now because of time leap")
-                    ar.cancel()
+                when (ss) {
+                    is SyncStatus.Shutdown -> {
+                        logger.info { "shutting down sync" }
+                        apiRes.cancel()
+                        ss.done.complete(true)
+                        break@sync
+                    }
+                    is SyncStatus.Response -> {
+                        ss.response.success {
+                            since = it.next_batch
+                            client.next_batch = since
+                        }
+                        if (ss.response is com.github.kittinunf.result.Result.Failure) {
+                            logger.warn { "Exception during sync: ${ss.response.error}" }
+                            break@sync
+                        }
+                        events.send(ss.response)
+                    }
+                    is SyncStatus.Resync -> {
+                        logger.info { "Restarting sync" }
+                        apiRes.cancel()
+                    }
                 }
             }
         }
     }
-
-    return sresChannel
 }
-
