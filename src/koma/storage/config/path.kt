@@ -1,10 +1,19 @@
 package koma.storage.config
 
-import util.getConfigDir
+import mu.KotlinLogging
 import java.io.File
 
-object config_paths {
-    val config_home = getConfigDir()
+private val logger = KotlinLogging.logger {}
+
+open class ConfigPaths(val config_home: String) {
+    init {
+        logger.debug { "using $config_home as data directory" }
+        val dir = File(config_home)
+        if (!dir.exists() && !dir.mkdir()) {
+            logger.debug { "failed to create data directory $config_home" }
+        }
+    }
+
     val profile_dir = getOrCreate("profile", create = true)
 
     fun getCreateProfileDir(vararg paths: String, create: Boolean = true): String? {
@@ -43,4 +52,13 @@ object config_paths {
     }
 }
 
-
+private fun getDefaultConfigDir(): String {
+    val env = System.getenv()
+    val config_home: String = env.get("XDG_CONFIG_HOME") ?: (System.getProperty("user.home") + File.separator + ".config")
+    val config_dir = config_home + File.separator + "koma"
+    val dir: File = File(config_dir)
+    if (!dir.isDirectory()) {
+        dir.mkdir()
+    }
+    return config_dir
+}

@@ -1,7 +1,7 @@
 package koma.storage.config.settings
 
 import javafx.scene.text.Font
-import koma.storage.config.config_paths
+import koma.storage.config.ConfigPaths
 import koma.storage.config.persist.load_json
 import koma.storage.config.persist.save_json
 import koma.storage.config.server.ProxyAdapter
@@ -12,9 +12,9 @@ import kotlin.math.roundToInt
 /**
  * settings for the whole app, not specific to a account
  */
-object AppSettings{
+class AppSettings(paths: ConfigPaths){
     private val file by lazy {
-        config_paths.getOrCreate("settings")?.let {
+        paths.getOrCreate("settings")?.let {
             File(it).resolve("koma-settings.json")}
     }
 

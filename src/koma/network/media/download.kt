@@ -3,7 +3,7 @@ package koma.network.media
 import com.github.kittinunf.result.Result
 import com.github.kittinunf.result.flatMap
 import com.github.kittinunf.result.map
-import koma.network.client.okhttp.AppHttpClient
+import koma.Koma
 import koma.network.matrix.media.mxcToHttp
 import koma.util.coroutine.adapter.okhttp.await
 import koma.util.coroutine.adapter.okhttp.extract
@@ -14,13 +14,13 @@ import okhttp3.Request
 import okhttp3.ResponseBody
 import java.util.concurrent.TimeUnit
 
-suspend fun getResponse(url: HttpUrl): Result<ResponseBody, Exception> {
+suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Exception> {
     val req = Request.Builder().url(url).build()
-    val httpres = AppHttpClient.client.newCall(req).await()
+    val httpres = this.http.client.newCall(req).await()
     return httpres.flatMap { res -> res.extract() }
 }
 
-suspend fun downloadMedia(mhUrl: MHUrl): Result<ByteArray, Exception> {
+suspend fun Koma.downloadMedia(mhUrl: MHUrl): Result<ByteArray, Exception> {
     val req = when (mhUrl) {
         is MHUrl.Mxc -> {
             val h = mhUrl.toHttpUrl()
@@ -48,8 +48,8 @@ suspend fun downloadMedia(mhUrl: MHUrl): Result<ByteArray, Exception> {
     return bs
 }
 
-private suspend fun getHttpBytes(req: Request): Result<ByteArray, Exception> {
-    val hr = AppHttpClient.client.newCall(req).await()
+private suspend fun Koma.getHttpBytes(req: Request): Result<ByteArray, Exception> {
+    val hr = this.http.client.newCall(req).await()
     return hr.flatMap { it.extract() }.map { it.bytes() }
 }
 

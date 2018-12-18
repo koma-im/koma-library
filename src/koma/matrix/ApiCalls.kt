@@ -1,6 +1,7 @@
 package matrix
 
 import domain.*
+import koma.Koma
 import koma.controller.sync.longPollTimeout
 import koma.koma_app.SaveJobs
 import koma.matrix.UserId
@@ -168,9 +169,9 @@ interface MatrixMediaApi {
     ): Call<UploadResponse>
 }
 
-class ApiClient(val profile: Profile, serverConf: ServerConf) {
+class ApiClient(val profile: Profile, serverConf: ServerConf, koma: Koma) {
     val apiURL: String = serverConf.getAddress() + serverConf.apiPath
-
+    private val http = koma.http
     val token: String
     val userId: UserId
 
@@ -260,21 +261,21 @@ class ApiClient(val profile: Profile, serverConf: ServerConf) {
         token = profile.access_token
         userId = profile.userId
 
-        val cb = AppHttpClient.builderForServer(serverConf)
+        val cb = http.builderForServer(serverConf)
         val rb = createRetrofitBuilder()
 
-        service = rb.client(cb.tryAddAppCache("matrix-access", 5*1024*1024).build()).build().create(MatrixAccessApi::class.java)
+        service = rb.client(cb.tryAddAppCache("matrix-access", 5*1024*1024, koma.paths).build()).build().create(MatrixAccessApi::class.java)
 
         // no point caching the sync
         val longPollClient = cb.readTimeout(longPollTimeout.toLong() + 10, TimeUnit.SECONDS).build()
         longPollService = rb.client(longPollClient).build().create(MatrixAccessApi::class.java)
 
-        mediaService = createMediaService(serverConf, AppHttpClient.client)
+        mediaService = createMediaService(serverConf, http.client)
 
-        next_batch = loadSyncBatchToken(userId)
+        next_batch = koma.loadSyncBatchToken(userId)
         SaveJobs.addJob {
             val nb = next_batch
-            nb?.let { saveSyncBatchToken(userId, it) }
+            nb?.let { koma.saveSyncBatchToken(userId, it) }
         }
     }
 
@@ -313,10 +314,10 @@ interface MatrixLoginApi {
     fun login(@Body userpass: UserPassword): Call<AuthedUser>
 }
 
-fun login(userpass: UserPassword, serverConf: ServerConf):
+fun login(userpass: UserPassword, serverConf: ServerConf, http: AppHttpClient):
         Call<AuthedUser> {
     val moshi = MoshiInstance.moshi
-    val client = AppHttpClient.builderForServer(serverConf).build()
+    val client = http.builderForServer(serverConf).build()
     val retrofit = Retrofit.Builder()
             .baseUrl(serverConf.getAddress())
             .client(client)

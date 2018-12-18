@@ -1,6 +1,7 @@
 package koma.storage.config.profile
 
 import com.squareup.moshi.Moshi
+import koma.Koma
 import koma.matrix.UserId
 import koma.matrix.json.NewTypeStringAdapterFactory
 import matrix.AuthedUser
@@ -10,7 +11,7 @@ import java.io.IOException
 
 private val tokenfilename = "access_token.json"
 
-fun saveToken(userId: UserId, token: String) {
+fun Koma.saveToken(userId: UserId, token: String) {
     val dir = userProfileDir(userId)
     dir?: return
     val data = Token(token)
@@ -30,7 +31,7 @@ class Token (
     val token: String
 )
 
-fun getToken(userId: UserId): AuthedUser? {
+fun Koma.getToken(userId: UserId): AuthedUser? {
     val dir = userProfileDir(userId)
     dir?: return null
 
