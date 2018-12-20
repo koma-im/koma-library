@@ -4,7 +4,7 @@
     <groupId>io.github.koma-im.koma</groupId>
     <artifactId>koma-library</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.4.5</version>
+    <version>0.7.4.6</version>
     <name>koma-library</name>
     <dependencies>
         <dependency>
