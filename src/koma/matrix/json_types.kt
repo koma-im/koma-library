@@ -1,7 +1,5 @@
 package domain
 
-import javafx.beans.property.SimpleListProperty
-import javafx.collections.FXCollections
 import koma.matrix.room.naming.RoomAlias
 import koma.matrix.room.naming.RoomId
 
@@ -29,11 +27,6 @@ data class DiscoveredRoom(
     fun dispName(): String{
         val n = name ?: aliases?.getOrNull(0)?.full ?: room_id.localstr
         return n
-    }
-
-    fun aliasesProperty(): SimpleListProperty<String> {
-        val l = aliases?.map { it.full } ?: listOf()
-        return SimpleListProperty(FXCollections.observableArrayList(l))
     }
 
     fun containsTerms(terms: List<String>): Boolean {
