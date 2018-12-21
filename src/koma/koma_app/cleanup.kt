@@ -1,6 +1,6 @@
 package koma.koma_app
 
-object SaveJobs {
+internal object SaveJobs {
 
     val jobs = mutableListOf<()->Unit>()
 
