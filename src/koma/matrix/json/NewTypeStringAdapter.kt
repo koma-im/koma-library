@@ -11,7 +11,7 @@ abstract class NewTypeString(val str: String) {
     abstract override fun hashCode(): Int
 }
 
-class NewTypeStringAdapterFactory: JsonAdapter.Factory {
+internal class NewTypeStringAdapterFactory: JsonAdapter.Factory {
     private val newStringClass = NewTypeString::class.java
 
     override fun create(type: Type, annotations: Set<Annotation>, moshi: Moshi): JsonAdapter<NewTypeString>? {

@@ -6,7 +6,7 @@ import koma.matrix.event.room_message.state.*
 import matrix.event.room_message.RoomEventType
 import java.lang.reflect.Type
 
-class RoomEventAdapterFactory: JsonAdapter.Factory {
+internal class RoomEventAdapterFactory: JsonAdapter.Factory {
     override fun create(type: Type, annotations: MutableSet<out Annotation>, moshi: Moshi): JsonAdapter<RoomEvent>? {
         if (annotations.isNotEmpty() || Types.getRawType(type) != RoomEvent::class.java) {
             return null

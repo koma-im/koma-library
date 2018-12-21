@@ -5,11 +5,16 @@ import koma.storage.config.ConfigPaths
 import koma.storage.config.server.ServerConf
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
+import java.net.Proxy
 
 /**
  * try to always reuse this client instead of creating a new one
  */
-class AppHttpClient(private val paths: ConfigPaths, private val koma: Koma) {
+class AppHttpClient(
+        private val paths: ConfigPaths,
+        private val koma: Koma,
+        proxy: Proxy? = null
+) {
     val client: OkHttpClient
     val builder: OkHttpClient.Builder
 
@@ -23,11 +28,11 @@ class AppHttpClient(private val paths: ConfigPaths, private val koma: Koma) {
     }
 
     init {
-        val proxy = koma.appSettings.getProxy()
+
         val conpoo = ConnectionPool()
-        builder = OkHttpClient.Builder()
-                .proxy(proxy)
-                .connectionPool(conpoo)
+        var b = OkHttpClient.Builder().connectionPool(conpoo)
+        if (proxy != null) b = b.proxy(proxy)
+        builder = b
         client = setUpClient()
     }
 

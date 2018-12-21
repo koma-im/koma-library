@@ -4,7 +4,7 @@ import com.squareup.moshi.*
 import koma.matrix.event.room_message.JsonKeyFinder
 import java.lang.reflect.Type
 
-class MessageAdapterFactory: JsonAdapter.Factory {
+internal class MessageAdapterFactory: JsonAdapter.Factory {
     override fun create(type: Type, annotations: MutableSet<out Annotation>, moshi: Moshi): JsonAdapter<M_Message>? {
         if (annotations.isNotEmpty() || Types.getRawType(type) != M_Message::class.java) {
             return null

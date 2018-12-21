@@ -46,7 +46,7 @@ enum class RoomEventType{
     }
 }
 
-class RoomEventTypeEnumAdapter {
+internal class RoomEventTypeEnumAdapter {
     @ToJson
     fun toJson(t: RoomEventType): String {
         return RoomEventType.enumToStr(t)
