@@ -4,7 +4,7 @@
     <groupId>io.github.koma-im.koma</groupId>
     <artifactId>koma-library</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.4.11</version>
+    <version>0.7.4.12</version>
     <name>koma-library</name>
     <dependencies>
         <dependency>
@@ -41,11 +41,6 @@
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
-            <version>${kotlinx.coroutine.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-coroutines-javafx</artifactId>
             <version>${kotlinx.coroutine.version}</version>
         </dependency>
         <dependency>
