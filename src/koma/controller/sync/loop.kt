@@ -4,10 +4,10 @@ import com.github.kittinunf.result.Result
 import com.github.kittinunf.result.success
 import koma.matrix.sync.SyncResponse
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma_app.appState
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
+import matrix.ApiClient
 import mu.KotlinLogging
 import java.net.SocketTimeoutException
 import java.time.Instant
@@ -62,8 +62,7 @@ class MatrixSyncReceiver(var since: String?=null) {
         shutdownChan.send(complete)
         complete.await()
     }
-    fun startSyncing() {
-        val client = appState.apiClient
+    fun startSyncing(client: ApiClient) {
 
         GlobalScope.launch {
             sync@ while (true) {
