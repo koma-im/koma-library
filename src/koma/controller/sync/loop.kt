@@ -9,6 +9,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
 import matrix.ApiClient
 import mu.KotlinLogging
+import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.time.Instant
 
@@ -86,13 +87,15 @@ class MatrixSyncReceiver(var since: String?=null) {
                         }
                         if (ss.response is Result.Failure) {
                             val e = ss.response.error
-                            if (e is SocketTimeoutException) {
+                            if (e is SocketTimeoutException
+                                    || e is ConnectException) {
                                 logger.warn { "timeout during sync: $e" }
                                 delay(1500)
                                 logger.info { "resuming sync after timeout" }
                                 continue@sync
                             } else {
                                 logger.warn { "Exception during sync: ${e}" }
+                                break@sync
                             }
                         }
                         events.send(ss.response)
