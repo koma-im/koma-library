@@ -3,7 +3,6 @@ package matrix
 import domain.*
 import koma.Koma
 import koma.controller.sync.longPollTimeout
-import koma.koma_app.SaveJobs
 import koma.matrix.UserId
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
@@ -30,8 +29,6 @@ import koma.matrix.sync.SyncResponse
 import koma.network.client.okhttp.AppHttpClient
 import koma.network.client.okhttp.tryAddAppCache
 import koma.storage.config.profile.Profile
-import koma.storage.config.profile.loadSyncBatchToken
-import koma.storage.config.profile.saveSyncBatchToken
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
 import matrix.event.room_message.RoomEventType
@@ -175,8 +172,6 @@ class ApiClient(val profile: Profile, serverConf: ServerConf, koma: Koma) {
     val token: String
     val userId: UserId
 
-    var next_batch: String? = null
-
     val service: MatrixAccessApi
     val longPollService: MatrixAccessApi
     val mediaService: MatrixMediaApi
@@ -271,12 +266,6 @@ class ApiClient(val profile: Profile, serverConf: ServerConf, koma: Koma) {
         longPollService = rb.client(longPollClient).build().create(MatrixAccessApi::class.java)
 
         mediaService = createMediaService(serverConf, http.client)
-
-        next_batch = koma.loadSyncBatchToken(userId)
-        SaveJobs.addJob {
-            val nb = next_batch
-            nb?.let { koma.saveSyncBatchToken(userId, it) }
-        }
     }
 
     /**

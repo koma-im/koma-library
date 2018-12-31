@@ -44,7 +44,7 @@ fun detectTimeLeap(): Channel<Unit> {
  * it stops when there is an exception
  * it is up to the caller to restart the sync
  */
-class MatrixSyncReceiver(var since: String?=null) {
+class MatrixSyncReceiver(var since: String?) {
     /**
      * channel of responses from the sync api
      */
@@ -83,7 +83,6 @@ class MatrixSyncReceiver(var since: String?=null) {
                     is SyncStatus.Response -> {
                         ss.response.success {
                             since = it.next_batch
-                            client.next_batch = since
                         }
                         if (ss.response is Result.Failure) {
                             val e = ss.response.error
