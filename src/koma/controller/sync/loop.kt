@@ -86,11 +86,11 @@ class MatrixSyncReceiver(var since: String?) {
                         }
                         if (ss.response is Result.Failure) {
                             val e = ss.response.error
-                            if (e is SocketTimeoutException
-                                    || e is ConnectException) {
-                                logger.warn { "timeout during sync: $e" }
+                            if (e is SocketTimeoutException) {
+                                continue@sync
+                            } else if ( e is ConnectException) {
+                                logger.warn { "sync exception: $e" }
                                 delay(1500)
-                                logger.info { "resuming sync after timeout" }
                                 continue@sync
                             } else {
                                 logger.warn { "Exception during sync: ${e}" }
