@@ -4,12 +4,17 @@
     <groupId>io.github.koma-im</groupId>
     <artifactId>koma-library</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.5.0</version>
+    <version>0.7.5.1</version>
     <name>koma-library</name>
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib-jdk8</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
         <dependency>

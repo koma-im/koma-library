@@ -7,7 +7,7 @@ import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
-import matrix.ApiClient
+import koma.matrix.MatrixApi
 import mu.KotlinLogging
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -63,7 +63,7 @@ class MatrixSyncReceiver(var since: String?) {
         shutdownChan.send(complete)
         complete.await()
     }
-    fun startSyncing(client: ApiClient) {
+    fun startSyncing(client: MatrixApi) {
 
         GlobalScope.launch {
             sync@ while (true) {

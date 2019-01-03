@@ -1,9 +1,8 @@
-package matrix
+package koma.matrix
 
 import domain.*
 import koma.Koma
 import koma.controller.sync.longPollTimeout
-import koma.matrix.UserId
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
 import koma.matrix.event.room_message.RoomEvent
@@ -49,9 +48,12 @@ data class SendResult(
 
 class UpdateAvatarResult()
 
-
-// interactions using access_token
-interface MatrixAccessApi {
+/**
+ * Api that requires access_token
+ * the api only needs to be defined as an interface
+ * retrofit/moshi handles the rest
+ */
+internal interface MatrixAccessApiDef {
     @POST("createRoom")
     fun createRoom(@Query("access_token") token: String,
                    @Body roomSettings: CreateRoomSettings): Call<CreateRoomResult>
@@ -158,7 +160,10 @@ interface MatrixAccessApi {
 
 }
 
-interface MatrixMediaApi {
+/**
+ * usually at path _matrix/media/r0/
+ */
+internal interface MatrixMediaApiDef {
     @POST("upload")
     fun uploadMedia(@Header("Content-Type") type: String,
                     @Query("access_token") token: String,
@@ -166,15 +171,15 @@ interface MatrixMediaApi {
     ): Call<UploadResponse>
 }
 
-class ApiClient(val profile: Profile, serverConf: ServerConf, koma: Koma) {
+class MatrixApi(val profile: Profile, serverConf: ServerConf, koma: Koma) {
     val apiURL: String = serverConf.getAddress() + serverConf.apiPath
     private val http = koma.http
     val token: String
     val userId: UserId
 
-    val service: MatrixAccessApi
-    val longPollService: MatrixAccessApi
-    val mediaService: MatrixMediaApi
+    internal val service: MatrixAccessApiDef
+    private val longPollService: MatrixAccessApiDef
+    private val mediaService: MatrixMediaApiDef
 
     private val txnIdUnique = AtomicLong()
 
@@ -259,11 +264,11 @@ class ApiClient(val profile: Profile, serverConf: ServerConf, koma: Koma) {
         val cb = http.builderForServer(serverConf)
         val rb = createRetrofitBuilder()
 
-        service = rb.client(cb.tryAddAppCache("matrix-access", 5*1024*1024, koma.paths).build()).build().create(MatrixAccessApi::class.java)
+        service = rb.client(cb.tryAddAppCache("matrix-access", 5*1024*1024, koma.paths).build()).build().create(MatrixAccessApiDef::class.java)
 
         // no point caching the sync
         val longPollClient = cb.readTimeout(longPollTimeout.toLong() + 10, TimeUnit.SECONDS).build()
-        longPollService = rb.client(longPollClient).build().create(MatrixAccessApi::class.java)
+        longPollService = rb.client(longPollClient).build().create(MatrixAccessApiDef::class.java)
 
         mediaService = createMediaService(serverConf, http.client)
     }
@@ -279,11 +284,11 @@ class ApiClient(val profile: Profile, serverConf: ServerConf, koma: Koma) {
         return retrofitbuild
     }
 
-    private fun createMediaService(serverConf: ServerConf, client: OkHttpClient): MatrixMediaApi {
+    private fun createMediaService(serverConf: ServerConf, client: OkHttpClient): MatrixMediaApiDef {
         return Retrofit.Builder().baseUrl(serverConf.getAddress() + "_matrix/media/r0/")
                 .addConverterFactory(MoshiConverterFactory.create())
                 .client(client)
-                .build().create(MatrixMediaApi::class.java)
+                .build().create(MatrixMediaApiDef::class.java)
     }
 }
 
