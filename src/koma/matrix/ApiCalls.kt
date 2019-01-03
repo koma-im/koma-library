@@ -31,8 +31,8 @@ import koma.storage.config.profile.Profile
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
 import matrix.event.room_message.RoomEventType
+import okhttp3.HttpUrl
 import okhttp3.MediaType
-import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.Retrofit
@@ -171,8 +171,15 @@ internal interface MatrixMediaApiDef {
     ): Call<UploadResponse>
 }
 
-class MatrixApi(val profile: Profile, serverConf: ServerConf, koma: Koma) {
-    val apiURL: String = serverConf.getAddress() + serverConf.apiPath
+class MatrixApi(
+        val profile: Profile,
+        /***
+         * homeserver base address such as https://matrix.org
+         */
+        server: HttpUrl,
+        apiPath: String = "_matrix/client/r0/",
+        mediaPath: String = "_matrix/media/r0/",
+        koma: Koma) {
     private val http = koma.http
     val token: String
     val userId: UserId
@@ -262,7 +269,11 @@ class MatrixApi(val profile: Profile, serverConf: ServerConf, koma: Koma) {
         userId = profile.userId
 
         val cb = http.builder
-        val rb = createRetrofitBuilder()
+        val moshi = MoshiInstance.moshi
+        val apiURL = server.newBuilder().addPathSegments(apiPath).build()
+        val rb = Retrofit.Builder()
+                .baseUrl(apiURL)
+                .addConverterFactory(MoshiConverterFactory.create(moshi))
 
         service = rb.client(cb.tryAddAppCache("matrix-access", 5*1024*1024, koma.paths).build()).build().create(MatrixAccessApiDef::class.java)
 
@@ -270,26 +281,14 @@ class MatrixApi(val profile: Profile, serverConf: ServerConf, koma: Koma) {
         val longPollClient = cb.readTimeout(longPollTimeout.toLong() + 10, TimeUnit.SECONDS).build()
         longPollService = rb.client(longPollClient).build().create(MatrixAccessApiDef::class.java)
 
-        mediaService = createMediaService(serverConf, http.client)
-    }
-
-    /**
-     * add adapters to moshi and then add moshi to retrofit
-     */
-    private fun createRetrofitBuilder(): Retrofit.Builder {
-        val moshi = MoshiInstance.moshi
-        val retrofitbuild = Retrofit.Builder()
-                .baseUrl(apiURL)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
-        return retrofitbuild
-    }
-
-    private fun createMediaService(serverConf: ServerConf, client: OkHttpClient): MatrixMediaApiDef {
-        return Retrofit.Builder().baseUrl(serverConf.getAddress() + "_matrix/media/r0/")
+        val mu = server.newBuilder().addPathSegments(mediaPath).build()
+        mediaService = Retrofit.Builder()
+                .baseUrl(mu)
                 .addConverterFactory(MoshiConverterFactory.create())
-                .client(client)
+                .client(http.client)
                 .build().create(MatrixMediaApiDef::class.java)
     }
+
 }
 
 
