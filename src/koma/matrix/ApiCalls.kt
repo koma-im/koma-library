@@ -261,7 +261,7 @@ class MatrixApi(val profile: Profile, serverConf: ServerConf, koma: Koma) {
         token = profile.access_token
         userId = profile.userId
 
-        val cb = http.builderForServer(serverConf)
+        val cb = http.builder
         val rb = createRetrofitBuilder()
 
         service = rb.client(cb.tryAddAppCache("matrix-access", 5*1024*1024, koma.paths).build()).build().create(MatrixAccessApiDef::class.java)
@@ -311,7 +311,7 @@ interface MatrixLoginApi {
 fun login(userpass: UserPassword, serverConf: ServerConf, http: AppHttpClient):
         Call<AuthedUser> {
     val moshi = MoshiInstance.moshi
-    val client = http.builderForServer(serverConf).build()
+    val client = http.client
     val retrofit = Retrofit.Builder()
             .baseUrl(serverConf.getAddress())
             .client(client)

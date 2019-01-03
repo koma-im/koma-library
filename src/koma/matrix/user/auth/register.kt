@@ -40,7 +40,7 @@ interface MatrixRegisterApi {
 
 class Register(val serverConf: ServerConf, httpClient: AppHttpClient) {
     private val moshi = MoshiInstance.moshi
-    private val client = httpClient.builderForServer(serverConf).build()
+    private val client = httpClient.client
     private val retrofit = Retrofit.Builder()
             .baseUrl(serverConf.getAddress())
             .client(client)

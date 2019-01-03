@@ -1,44 +1,37 @@
 package koma.network.client.okhttp
 
 import koma.Koma
-import koma.storage.config.ConfigPaths
-import koma.storage.config.server.ServerConf
+import koma.storage.config.server.cert_trust.sslConfFromStream
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
+import java.io.InputStream
 import java.net.Proxy
 
 /**
  * try to always reuse this client instead of creating a new one
  */
 class AppHttpClient(
-        private val paths: ConfigPaths,
         private val koma: Koma,
+        /**
+         * can be used to trust mitmproxy, useful for debugging
+         */
+        trustAdditionalCertificate: InputStream? = null,
         proxy: Proxy? = null
 ) {
     val client: OkHttpClient
     val builder: OkHttpClient.Builder
-
-    fun builderForServer(serverConf: ServerConf): OkHttpClient.Builder {
-        val addtrust = koma.servers.loadServerCert(serverConf)
-        return if (addtrust != null) {
-            builder.sslSocketFactory(addtrust.first.socketFactory, addtrust.second)
-        } else {
-            builder
-        }
-    }
 
     init {
 
         val conpoo = ConnectionPool()
         var b = OkHttpClient.Builder().connectionPool(conpoo)
         if (proxy != null) b = b.proxy(proxy)
+        b = b.tryAddAppCache("http", 80*1024*1024, koma.paths)
+        if (trustAdditionalCertificate != null) {
+            val (s, m) = sslConfFromStream(trustAdditionalCertificate)
+            b = b.sslSocketFactory(s.socketFactory, m)
+        }
         builder = b
-        client = setUpClient()
-    }
-
-    private fun setUpClient(): OkHttpClient {
-        return builder.tryAddAppCache("http", 80*1024*1024, koma.paths)
-                .trySetAppCert(paths)
-                .build()
+        client = builder.build()
     }
 }
