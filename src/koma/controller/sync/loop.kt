@@ -2,12 +2,12 @@ package koma.controller.sync
 
 import com.github.kittinunf.result.Result
 import com.github.kittinunf.result.success
+import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
-import koma.matrix.MatrixApi
 import mu.KotlinLogging
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -87,6 +87,8 @@ class MatrixSyncReceiver(var since: String?) {
                         if (ss.response is Result.Failure) {
                             val e = ss.response.error
                             if (e is SocketTimeoutException) {
+                                // This is probably not normal
+                                // Normally the server returns an empty response if there are no new events
                                 continue@sync
                             } else if ( e is ConnectException) {
                                 logger.warn { "sync exception: $e" }

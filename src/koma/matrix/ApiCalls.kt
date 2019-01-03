@@ -1,7 +1,6 @@
 package koma.matrix
 
 import domain.*
-import koma.Koma
 import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
@@ -26,7 +25,6 @@ import koma.matrix.room.participation.invite.InviteUserData
 import koma.matrix.room.participation.join.JoinRoomResult
 import koma.matrix.sync.SyncResponse
 import koma.network.client.okhttp.AppHttpClient
-import koma.network.client.okhttp.tryAddAppCache
 import koma.storage.config.profile.Profile
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
@@ -179,8 +177,10 @@ class MatrixApi(
         server: HttpUrl,
         apiPath: String = "_matrix/client/r0/",
         mediaPath: String = "_matrix/media/r0/",
-        koma: Koma) {
-    private val http = koma.http
+        /**
+         * share OkHttpClient as much as possible to conserve resources
+         */
+        http: AppHttpClient) {
     val token: String
     val userId: UserId
 
@@ -268,17 +268,17 @@ class MatrixApi(
         token = profile.access_token
         userId = profile.userId
 
-        val cb = http.builder
         val moshi = MoshiInstance.moshi
         val apiURL = server.newBuilder().addPathSegments(apiPath).build()
         val rb = Retrofit.Builder()
                 .baseUrl(apiURL)
                 .addConverterFactory(MoshiConverterFactory.create(moshi))
 
-        service = rb.client(cb.tryAddAppCache("matrix-access", 5*1024*1024, koma.paths).build()).build().create(MatrixAccessApiDef::class.java)
+        service = rb.client(http.client).build()
+                .create(MatrixAccessApiDef::class.java)
 
-        // no point caching the sync
-        val longPollClient = cb.readTimeout(longPollTimeout.toLong() + 10, TimeUnit.SECONDS).build()
+        // need to set a longer timeout for the sync api
+        val longPollClient = http.builder.readTimeout(longPollTimeout.toLong() + 10, TimeUnit.SECONDS).build()
         longPollService = rb.client(longPollClient).build().create(MatrixAccessApiDef::class.java)
 
         val mu = server.newBuilder().addPathSegments(mediaPath).build()

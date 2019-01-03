@@ -11,7 +11,8 @@ import java.net.Proxy
 private val logger = KotlinLogging.logger {}
 
 class Koma(val paths: ConfigPaths, proxy: Proxy) {
-    val http = AppHttpClient(this,
+    val http = AppHttpClient(
+            cacheDir = paths.getCreateDir("data", "cache", "http"),
             trustAdditionalCertificate = loadOptionalCert(paths),
             proxy = proxy)
     val servers = ServerConfStore(paths)
