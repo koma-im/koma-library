@@ -1,9 +1,12 @@
 package koma
 
+import koma.matrix.MatrixApi
+import koma.matrix.UserId
 import koma.network.client.okhttp.AppHttpClient
 import koma.storage.config.ConfigPaths
 import koma.storage.config.server.ServerConfStore
 import mu.KotlinLogging
+import okhttp3.HttpUrl
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.net.Proxy
@@ -16,6 +19,10 @@ class Koma(val paths: ConfigPaths, proxy: Proxy) {
             trustAdditionalCertificate = loadOptionalCert(paths),
             proxy = proxy)
     val servers = ServerConfStore(paths)
+
+    fun createApi(token: String, userId: UserId, server: HttpUrl): MatrixApi {
+        return MatrixApi(token, userId, server, http = http)
+    }
 }
 
 /**

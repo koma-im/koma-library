@@ -25,7 +25,6 @@ import koma.matrix.room.participation.invite.InviteUserData
 import koma.matrix.room.participation.join.JoinRoomResult
 import koma.matrix.sync.SyncResponse
 import koma.network.client.okhttp.AppHttpClient
-import koma.storage.config.profile.Profile
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
 import matrix.event.room_message.RoomEventType
@@ -170,7 +169,8 @@ internal interface MatrixMediaApiDef {
 }
 
 class MatrixApi(
-        val profile: Profile,
+        private val token: String,
+        private val userId: UserId,
         /***
          * homeserver base address such as https://matrix.org
          */
@@ -181,8 +181,6 @@ class MatrixApi(
          * share OkHttpClient as much as possible to conserve resources
          */
         http: AppHttpClient) {
-    val token: String
-    val userId: UserId
 
     internal val service: MatrixAccessApiDef
     private val longPollService: MatrixAccessApiDef
@@ -265,9 +263,6 @@ class MatrixApi(
             = longPollService.getEvents(from, token)
 
     init {
-        token = profile.access_token
-        userId = profile.userId
-
         val moshi = MoshiInstance.moshi
         val apiURL = server.newBuilder().addPathSegments(apiPath).build()
         val rb = Retrofit.Builder()
