@@ -44,7 +44,7 @@ fun detectTimeLeap(): Channel<Unit> {
  * it stops when there is an exception
  * it is up to the caller to restart the sync
  */
-class MatrixSyncReceiver(var since: String?) {
+class MatrixSyncReceiver(private val client: MatrixApi, var since: String?) {
     /**
      * channel of responses from the sync api
      */
@@ -63,7 +63,7 @@ class MatrixSyncReceiver(var since: String?) {
         shutdownChan.send(complete)
         complete.await()
     }
-    fun startSyncing(client: MatrixApi) {
+    fun startSyncing() {
 
         GlobalScope.launch {
             sync@ while (true) {
