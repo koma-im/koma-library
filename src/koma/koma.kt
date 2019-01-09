@@ -7,6 +7,7 @@ import koma.storage.config.ConfigPaths
 import koma.storage.config.server.ServerConfStore
 import mu.KotlinLogging
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.net.Proxy
@@ -17,6 +18,10 @@ class Koma(
         val paths: ConfigPaths,
         proxy: Proxy,
         /**
+         * Provide a configured builder to configure some options of the http client
+         */
+        http_builder: OkHttpClient.Builder? = null,
+        /**
          * additional certificate to trust
          */
         addTrust: InputStream? = null
@@ -24,6 +29,7 @@ class Koma(
     val http = AppHttpClient(
             cacheDir = paths.getCreateDir("data", "cache", "http"),
             trustAdditionalCertificate = addTrust ?: loadOptionalCert(paths),
+            http_builder = http_builder,
             proxy = proxy)
     val servers = ServerConfStore(paths)
 

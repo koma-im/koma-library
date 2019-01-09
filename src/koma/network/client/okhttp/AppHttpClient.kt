@@ -25,6 +25,12 @@ class AppHttpClient(
          * enable http cache using the directory on disk
          */
         cacheDir: File? = null,
+        /**
+         * provide a builder to configure the http client
+         * some options are still overridden
+         * such as connection pool, proxy
+         */
+        http_builder: OkHttpClient.Builder? = null,
         proxy: Proxy? = null
 ) {
     val client: OkHttpClient
@@ -33,7 +39,8 @@ class AppHttpClient(
     init {
 
         val conpoo = ConnectionPool()
-        var b = OkHttpClient.Builder().connectionPool(conpoo)
+        var b = http_builder?: OkHttpClient.Builder()
+        b = b.connectionPool(conpoo)
         if (proxy != null) b = b.proxy(proxy)
         if (cacheDir != null) {
             b = b.cache(Cache(cacheDir, cacheSize))
