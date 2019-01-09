@@ -4,7 +4,7 @@ import com.squareup.moshi.Moshi
 import koma.matrix.event.rooRoomEvent.RoomEventAdapterFactory
 import koma.matrix.event.room_message.RoomEvent
 import koma.matrix.event.room_message.chat.MessageAdapterFactory
-import matrix.event.room_message.RoomEventTypeEnumAdapter
+import koma.matrix.event.room_message.RoomEventTypeEnumAdapter
 
 object MoshiInstance{
     val moshiBuilder = Moshi.Builder()

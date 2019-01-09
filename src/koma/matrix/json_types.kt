@@ -1,4 +1,4 @@
-package domain
+package koma.matrix
 
 import koma.matrix.room.naming.RoomAlias
 import koma.matrix.room.naming.RoomId

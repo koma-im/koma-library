@@ -1,4 +1,4 @@
-package koma.matrix.epemeral
+package koma.matrix.event.ephemeral
 
 import com.squareup.moshi.Json
 

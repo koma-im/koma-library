@@ -1,7 +1,7 @@
-package matrix.room
+package koma.matrix.room
 
 import koma.matrix.UserId
-import koma.matrix.epemeral.EphemeralRawEvent
+import koma.matrix.event.ephemeral.EphemeralRawEvent
 import koma.matrix.event.GeneralEvent
 import koma.matrix.event.room_message.RoomEvent
 import koma.matrix.sync.Events

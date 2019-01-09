@@ -3,7 +3,7 @@ package koma.matrix.event.rooRoomEvent
 import com.squareup.moshi.*
 import koma.matrix.event.room_message.*
 import koma.matrix.event.room_message.state.*
-import matrix.event.room_message.RoomEventType
+import koma.matrix.event.room_message.RoomEventType
 import java.lang.reflect.Type
 
 internal class RoomEventAdapterFactory: JsonAdapter.Factory {

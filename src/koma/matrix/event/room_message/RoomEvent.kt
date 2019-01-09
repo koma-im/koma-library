@@ -6,7 +6,6 @@ import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.event.room_message.chat.MessageUnsigned
 import koma.matrix.event.room_message.state.RoomRedactContent
 import koma.matrix.json.MoshiInstance
-import matrix.event.room_message.RoomEventType
 
 // try to make moshi return different kind of objects depending on a key
 
@@ -49,7 +48,7 @@ class MRoomMessage(
         /**
          * sometimes content can be as empty as {}
          */
-        val content: M_Message?): RoomEvent(event_id, origin_server_ts, type=RoomEventType.Message)
+        val content: M_Message?): RoomEvent(event_id, origin_server_ts, type= RoomEventType.Message)
 
 class MRoomRedaction(
         //val age: Long?,

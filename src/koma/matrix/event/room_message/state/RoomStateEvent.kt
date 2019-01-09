@@ -7,7 +7,7 @@ import koma.matrix.event.room_message.state.member.PrevContent
 import koma.matrix.event.room_message.state.member.RoomMemberContent
 import koma.matrix.event.room_message.state.member.RoomMemberUnsigned
 import koma.matrix.event.room_message.state.member.StrippedState
-import matrix.event.room_message.RoomEventType
+import koma.matrix.event.room_message.RoomEventType
 
 sealed class RoomStateEvent(
         event_id: EventId,

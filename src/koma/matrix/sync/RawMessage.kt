@@ -3,7 +3,7 @@ package koma.matrix.sync
 import com.squareup.moshi.Moshi
 import koma.matrix.UserId
 import koma.matrix.json.NewTypeStringAdapterFactory
-import matrix.event.room_message.RoomEventType
+import koma.matrix.event.room_message.RoomEventType
 
 /**
  * message received as a dict from the server

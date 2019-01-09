@@ -2,9 +2,9 @@ package koma.matrix.sync
 
 import koma.matrix.room.naming.RoomId
 import koma.matrix.user.presence.PresenceMessage
-import matrix.room.InvitedRoom
-import matrix.room.JoinedRoom
-import matrix.room.LeftRoom
+import koma.matrix.room.InvitedRoom
+import koma.matrix.room.JoinedRoom
+import koma.matrix.room.LeftRoom
 
 data class Events<T>(
         val events: List<T>

@@ -1,7 +1,7 @@
 package koma.matrix.publicapi.rooms
 
 import com.github.kittinunf.result.Result
-import domain.DiscoveredRoom
+import koma.matrix.DiscoveredRoom
 import koma.matrix.MatrixApi
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import kotlinx.coroutines.ExperimentalCoroutinesApi

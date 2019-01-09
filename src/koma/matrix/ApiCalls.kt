@@ -1,6 +1,5 @@
 package koma.matrix
 
-import domain.*
 import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
@@ -27,7 +26,7 @@ import koma.matrix.sync.SyncResponse
 import koma.network.client.okhttp.AppHttpClient
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
-import matrix.event.room_message.RoomEventType
+import koma.matrix.event.room_message.RoomEventType
 import okhttp3.HttpUrl
 import okhttp3.MediaType
 import okhttp3.RequestBody

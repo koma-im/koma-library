@@ -2,7 +2,7 @@ package koma.matrix.room.power
 
 import koma.matrix.UserId
 import koma.matrix.event.room_message.state.RoomPowerLevelsContent
-import matrix.event.room_message.RoomEventType
+import koma.matrix.event.room_message.RoomEventType
 
 fun RoomPowerLevelsContent?.getUser(u: UserId): Float {
     return this?.users?.get(u) ?: 0f
