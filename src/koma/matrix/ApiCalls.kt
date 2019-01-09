@@ -170,7 +170,7 @@ internal interface MatrixMediaApiDef {
 
 class MatrixApi(
         private val token: String,
-        private val userId: UserId,
+        val userId: UserId,
         /***
          * homeserver base address such as https://matrix.org
          */
