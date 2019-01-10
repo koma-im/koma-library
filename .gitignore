@@ -1,5 +1,5 @@
 target
-koma.iml
+*.iml
 # Compiled class file
 *.class
 
