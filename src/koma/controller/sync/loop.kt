@@ -1,7 +1,6 @@
 package koma.controller.sync
 
 import com.github.kittinunf.result.Result
-import com.github.kittinunf.result.success
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
@@ -9,8 +8,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
 import mu.KotlinLogging
-import java.net.ConnectException
-import java.net.SocketTimeoutException
 import java.time.Instant
 
 
@@ -76,30 +73,23 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?) {
                 when (ss) {
                     is SyncStatus.Shutdown -> {
                         logger.info { "shutting down sync" }
-                        apiRes.cancel()
+                        apiRes.cancelAndJoin()
                         ss.done.complete(true)
                         break@sync
                     }
                     is SyncStatus.Response -> {
-                        ss.response.success {
-                            since = it.next_batch
-                        }
-                        if (ss.response is Result.Failure) {
-                            val e = ss.response.error
-                            if (e is SocketTimeoutException) {
-                                // This is probably not normal
-                                // Normally the server returns an empty response if there are no new events
-                                continue@sync
-                            } else if ( e is ConnectException) {
-                                logger.warn { "sync exception: $e" }
-                                delay(1500)
-                                continue@sync
-                            } else {
+                        val res = ss.response
+                        events.send(res)
+                        when (res) {
+                            is Result.Success -> {
+                                since = res.value.next_batch
+                            }
+                            is Result.Failure -> {
+                                val e = res.error
                                 logger.warn { "Exception during sync: ${e}" }
                                 break@sync
                             }
                         }
-                        events.send(ss.response)
                     }
                     is SyncStatus.Resync -> {
                         logger.info { "Restarting sync" }
