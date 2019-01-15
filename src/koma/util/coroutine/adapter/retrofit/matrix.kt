@@ -2,7 +2,7 @@ package koma.util.coroutine.adapter.retrofit
 
 import com.github.kittinunf.result.Result
 import com.github.kittinunf.result.flatMap
-import com.squareup.moshi.Moshi
+import koma.matrix.json.MoshiInstance
 import mu.KotlinLogging
 import retrofit2.Call
 import retrofit2.Response
@@ -57,12 +57,18 @@ class MatrixError(
     override fun toString() = "$errcode: $error"
 
     companion object {
-        private val moshi = Moshi.Builder().build()
+        private val moshi = MoshiInstance.moshi
         private val jsonAdapter = moshi.adapter(MatrixError::class.java)
 
         fun fromString(s: String): MatrixError? {
             try {
                 val e = jsonAdapter.fromJson(s)
+                e ?: return null
+                // moshi may disregard kotlin's non-nullability
+                // and anything could be parsed as nulls
+                if (e.errcode == null) {
+                    return null
+                }
                 return e
             } catch (e: java.lang.Exception) {
                 return null

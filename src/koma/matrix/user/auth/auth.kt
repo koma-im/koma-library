@@ -2,7 +2,7 @@ package koma.matrix.user.auth
 
 import com.github.kittinunf.result.Result
 import com.github.kittinunf.result.mapError
-import com.squareup.moshi.Moshi
+import koma.matrix.json.MoshiInstance
 import koma.util.coroutine.adapter.retrofit.HttpException
 import koma.util.coroutine.adapter.retrofit.MatrixError
 import koma.util.coroutine.adapter.retrofit.MatrixException
@@ -50,7 +50,7 @@ data class Unauthorized(
         }
     }
     companion object {
-        private val moshi = Moshi.Builder().build()
+        private val moshi = MoshiInstance.moshi
         private val jsonAdapter = moshi.adapter(Unauthorized::class.java)
 
         fun fromSource(bs: String): Unauthorized? =  jsonAdapter.fromJson(bs)
