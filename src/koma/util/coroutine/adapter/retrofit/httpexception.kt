@@ -9,13 +9,9 @@ open class HttpException(val code: Int,
     override fun toString(): String {
         return "HTTP $code $message"
     }
-    fun toStringShowBody(): String {
-        if (body == null) return "$this"
-        val preview = body.take(250)
-        return "$this: $preview"
-    }
     companion object {
         fun fromOkhttp(response: Response): HttpException {
+            response.body()?.close()
             val code = response.code()
             val message = response.message()
             return HttpException(code, message)
