@@ -15,10 +15,18 @@ data class SyncResponse(
         val presence: Events<PresenceMessage>,
         val account_data: Events<Map<String, Any>>,
         val rooms: RoomsResponse
-)
+) {
+    override fun toString(): String {
+        return "SyncResponse(next_batch=$next_batch,rooms=$rooms)"
+    }
+}
 
 data class RoomsResponse(
         val join: Map<String, JoinedRoom>,
         val invite: Map<String, InvitedRoom>,
         val leave: Map<RoomId, LeftRoom>
-)
+) {
+    override fun toString(): String {
+        return "RoomsResponse(${join.size} joined rooms)"
+    }
+}
