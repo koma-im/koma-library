@@ -1,14 +1,17 @@
 package koma.matrix
 
+import com.github.kittinunf.result.Result
 import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
 import koma.matrix.event.room_message.RoomEvent
+import koma.matrix.event.room_message.RoomEventType
 import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.event.room_message.state.RoomAvatarContent
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.event.room_message.state.RoomNameContent
 import koma.matrix.json.MoshiInstance
+import koma.matrix.media.parseMediaUrl
 import koma.matrix.pagination.FetchDirection
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.publicapi.rooms.RoomDirectoryQuery
@@ -23,10 +26,10 @@ import koma.matrix.room.participation.invite.InviteMemResult
 import koma.matrix.room.participation.invite.InviteUserData
 import koma.matrix.room.participation.join.JoinRoomResult
 import koma.matrix.sync.SyncResponse
+import koma.matrix.user.AvatarUrl
 import koma.network.client.okhttp.AppHttpClient
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
-import koma.matrix.event.room_message.RoomEventType
 import okhttp3.HttpUrl
 import okhttp3.MediaType
 import okhttp3.RequestBody
@@ -49,13 +52,13 @@ class UpdateAvatarResult()
  * the api only needs to be defined as an interface
  * retrofit/moshi handles the rest
  */
-internal interface MatrixAccessApiDef {
+interface MatrixAccessApiDef {
     @POST("createRoom")
     fun createRoom(@Query("access_token") token: String,
                    @Body roomSettings: CreateRoomSettings): Call<CreateRoomResult>
 
-    @POST("rooms/{roomIdentifier}/join")
-    fun joinRoom(@Path("roomIdentifier") roomIdentifier: String,
+    @POST("rooms/{roomId}/join")
+    fun joinRoom(@Path("roomId") roomId: String,
                  @Query("access_token") token: String)
             : Call<JoinRoomResult>
 
@@ -144,10 +147,13 @@ internal interface MatrixAccessApiDef {
                   @Query("filter") filter: String? = null)
             : Call<SyncResponse>
 
-   @PUT("profile/{userId}/avatar_url")
+    @PUT("profile/{userId}/avatar_url")
     fun updateAvatar(@Path("userId") user_id: UserId,
                      @Query("access_token") token: String,
                      @Body avatarUrl: AvatarUrl): Call<UpdateAvatarResult>
+
+    @GET("profile/{userId}/avatar_url")
+    fun getAvatar(@Path("userId") user_id: UserId): Call<AvatarUrl>
 
     @PUT("profile/{userId}/displayname")
     fun updateDisplayName(@Path("userId") user_id: UserId,
@@ -173,15 +179,15 @@ class MatrixApi(
         /***
          * homeserver base address such as https://matrix.org
          */
-        server: HttpUrl,
+        private val server: HttpUrl,
         apiPath: String = "_matrix/client/r0/",
-        mediaPath: String = "_matrix/media/r0/",
+        private val mediaPath: String = "_matrix/media/r0/",
         /**
          * share OkHttpClient as much as possible to conserve resources
          */
         http: AppHttpClient) {
 
-    internal val service: MatrixAccessApiDef
+    val service: MatrixAccessApiDef
     private val longPollService: MatrixAccessApiDef
     private val mediaService: MatrixMediaApiDef
 
@@ -207,6 +213,10 @@ class MatrixApi(
 
     fun uploadFile(file: File, contentType: MediaType): Call<UploadResponse> {
         val req = RequestBody.create(contentType, file)
+        return mediaService.uploadMedia(contentType.toString(), token, req)
+    }
+    fun uploadByteArray(contentType: MediaType, byteArray: ByteArray): Call<UploadResponse> {
+        val req = RequestBody.create(contentType, byteArray)
         return mediaService.uploadMedia(contentType.toString(), token, req)
     }
 
@@ -260,6 +270,10 @@ class MatrixApi(
 
     fun getEvents(from: String?): Call<SyncResponse>
             = longPollService.getEvents(from, token)
+
+    fun getMediaUrl(addr: String): Result<HttpUrl, Exception> {
+        return parseMediaUrl(addr, server, mediaPath)
+    }
 
     init {
         val moshi = MoshiInstance.moshi

@@ -43,11 +43,6 @@ data class DiscoveredRoom(
     }
 }
 
-
-data class AvatarUrl(
-        val avatar_url: String
-)
-
 data class UploadResponse(
         val content_uri: String
 )
