@@ -30,6 +30,8 @@ import koma.matrix.user.AvatarUrl
 import koma.network.client.okhttp.AppHttpClient
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
+import koma.util.coroutine.adapter.retrofit.awaitMatrix
+import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.MediaType
 import okhttp3.RequestBody
@@ -40,6 +42,8 @@ import retrofit2.http.*
 import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+
+private val logger = KotlinLogging.logger {}
 
 data class SendResult(
         val event_id: EventId
@@ -120,7 +124,7 @@ interface MatrixAccessApiDef {
     fun sendMessageEvent(
             @Path("roomId") roomId: RoomId,
             @Path("eventType") eventType: RoomEventType,
-            @Path("txnId") txnId: Long,
+            @Path("txnId") txnId: String,
             @Query("access_token") token: String,
             @Body message: M_Message): Call<SendResult>
 
@@ -191,9 +195,14 @@ class MatrixApi(
     private val longPollService: MatrixAccessApiDef
     private val mediaService: MatrixMediaApiDef
 
-    private val txnIdUnique = AtomicLong()
-
-    fun getTxnId() = txnIdUnique.getAndAdd(1)
+    private var _lastTxnId = AtomicLong()
+    private fun getTxnId(): String {
+        val t = System.currentTimeMillis()
+        val id = _lastTxnId.accumulateAndGet(t) { value, given ->
+            if (given > value) given else value + 1
+        }
+        return id.toString()
+    }
 
     fun createRoom(settings: CreateRoomSettings): Call<CreateRoomResult> {
         return service.createRoom(token, settings)
@@ -261,15 +270,22 @@ class MatrixApi(
         return call
     }
 
-    fun sendRoomMessage(roomId: RoomId, message: M_Message): Call<SendResult> {
-        println("sending message $message to room $roomId ")
-        return service.sendMessageEvent(roomId, RoomEventType.Message, getTxnId(), token, message)
+    suspend fun sendMessage(roomId: RoomId, message: M_Message
+    ): Result<SendResult, Exception> {
+        val tid = getTxnId()
+        logger.info { "sending to room $roomId message $tid with content $message" }
+
+        val res = service.sendMessageEvent(roomId, RoomEventType.Message, tid, token, message).awaitMatrix()
+
+        return res
     }
 
     fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query)
 
-    fun getEvents(from: String?): Call<SyncResponse>
-            = longPollService.getEvents(from, token)
+    suspend fun asyncEvents(from: String?): Result<SyncResponse, Exception> {
+        val syRes = longPollService.getEvents(from, token).awaitMatrix()
+        return syRes
+    }
 
     fun getMediaUrl(addr: String): Result<HttpUrl, Exception> {
         return parseMediaUrl(addr, server, mediaPath)

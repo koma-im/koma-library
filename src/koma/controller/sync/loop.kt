@@ -3,7 +3,6 @@ package koma.controller.sync
 import com.github.kittinunf.result.Result
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
-import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
@@ -64,7 +63,7 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?) {
 
         GlobalScope.launch {
             sync@ while (true) {
-                val apiRes = async { client.getEvents(since).awaitMatrix() }
+                val apiRes = async { client.asyncEvents(since) }
                 val ss = select<SyncStatus> {
                     apiRes.onAwait { SyncStatus.Response(it) }
                     shutdownChan.onReceive { i -> SyncStatus.Shutdown(i) }
