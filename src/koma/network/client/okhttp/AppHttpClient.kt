@@ -1,12 +1,13 @@
 package koma.network.client.okhttp
 
 import koma.storage.config.server.cert_trust.sslConfFromStream
-import okhttp3.Cache
-import okhttp3.ConnectionPool
-import okhttp3.OkHttpClient
+import mu.KotlinLogging
+import okhttp3.*
 import java.io.File
 import java.io.InputStream
 import java.net.Proxy
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * 80 megabytes
@@ -49,7 +50,33 @@ class AppHttpClient(
             val (s, m) = sslConfFromStream(trustAdditionalCertificate)
             b = b.sslSocketFactory(s.socketFactory, m)
         }
-        builder = b
+        builder = b.addInterceptor(RetryGetPeerCert())
         client = builder.build()
+        client.dispatcher()
+    }
+}
+
+/**
+ * sometimes there are IndexOutOfBoundsExceptions on Okhttp Dispatcher thread
+ * the cause may be that get is called on an empty list
+ */
+class RetryGetPeerCert: Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val req = chain.request()
+        for (i in 1..3) {
+            try {
+                val res = chain.proceed(req)
+                return res
+            } catch (e: IndexOutOfBoundsException) {
+                logger.error { "Request ${req.url()} got $e, retry $i" }
+                continue
+            }
+
+        }
+        logger.error { "Request ${req.url()} aborted" }
+        val res = Response.Builder()
+                .code(404)
+                .build()
+        return res
     }
 }
