@@ -27,6 +27,7 @@ import koma.matrix.room.participation.invite.InviteUserData
 import koma.matrix.room.participation.join.JoinRoomResult
 import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
+import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
 import koma.storage.config.server.ServerConf
 import koma.storage.config.server.getAddress
@@ -162,7 +163,11 @@ interface MatrixAccessApiDef {
     @PUT("profile/{userId}/displayname")
     fun updateDisplayName(@Path("userId") user_id: UserId,
                      @Query("access_token") token: String,
-                     @Body body: Map<String, String>): Call<EmptyResult>
+                     @Body body: DisplayName): Call<EmptyResult>
+
+    @GET("profile/{userId}/displayname")
+    fun getDisplayName(@Path("userId") user_id: String
+    ): Call<DisplayName>
 
 }
 
@@ -240,7 +245,11 @@ class MatrixApi(
     fun updateDisplayName(newname: String): Call<EmptyResult>
             = service.updateDisplayName(
             this.userId, token,
-            mapOf(Pair("displayname", newname)))
+            DisplayName(newname))
+
+    suspend fun getDisplayName(user: String): Result<DisplayName, Exception> {
+        return service.getDisplayName(user).awaitMatrix()
+    }
 
     fun setRoomIcon(roomId: RoomId, content: RoomAvatarContent):Call<SendResult>
             = service.sendStateEvent(roomId, RoomEventType.Avatar, token, content)
