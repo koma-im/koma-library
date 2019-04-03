@@ -29,8 +29,6 @@ import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
-import koma.storage.config.server.ServerConf
-import koma.storage.config.server.getAddress
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import mu.KotlinLogging
 import okhttp3.HttpUrl
@@ -340,12 +338,13 @@ interface MatrixLoginApi {
     fun login(@Body userpass: UserPassword): Call<AuthedUser>
 }
 
-fun login(userpass: UserPassword, serverConf: ServerConf, http: AppHttpClient):
+fun login(userpass: UserPassword, server: String, http: AppHttpClient):
         Call<AuthedUser> {
     val moshi = MoshiInstance.moshi
     val client = http.client
+    val serverUrl = if (server.endsWith('/')) server else "$server/"
     val retrofit = Retrofit.Builder()
-            .baseUrl(serverConf.getAddress())
+            .baseUrl(serverUrl)
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

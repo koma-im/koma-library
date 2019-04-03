@@ -4,8 +4,7 @@ import com.github.kittinunf.result.Result
 import koma.matrix.UserId
 import koma.matrix.json.MoshiInstance
 import koma.network.client.okhttp.AppHttpClient
-import koma.storage.config.server.ServerConf
-import koma.storage.config.server.getAddress
+import okhttp3.HttpUrl
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -38,11 +37,11 @@ interface MatrixRegisterApi {
     fun register(@Body data: Any): Call<RegisterdUser>
 }
 
-class Register(val serverConf: ServerConf, httpClient: AppHttpClient) {
+class Register(val server: HttpUrl, httpClient: AppHttpClient) {
     private val moshi = MoshiInstance.moshi
     private val client = httpClient.client
     private val retrofit = Retrofit.Builder()
-            .baseUrl(serverConf.getAddress())
+            .baseUrl(server)
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
@@ -66,7 +65,7 @@ class Register(val serverConf: ServerConf, httpClient: AppHttpClient) {
     suspend fun registerByPassword(username: String, password: String):
             Result<RegisterdUser, Exception> {
         val data = RegisterData.Password(username, password)
-        println("register user $username on ${serverConf.servername}")
+        println("register user $username on ${server}")
         return service.register(data).awaitMatrixAuth()
     }
 }

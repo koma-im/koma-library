@@ -5,7 +5,6 @@ import com.github.kittinunf.result.flatMap
 import com.github.kittinunf.result.map
 import koma.Koma
 import koma.network.matrix.media.mxcToHttp
-import koma.storage.config.server.ServerConf
 import koma.util.coroutine.adapter.okhttp.await
 import koma.util.coroutine.adapter.okhttp.extract
 import okhttp3.CacheControl
@@ -20,10 +19,10 @@ suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Exception> {
     return httpres.flatMap { res -> res.extract() }
 }
 
-suspend fun Koma.downloadMedia(mhUrl: MHUrl, serverConf: ServerConf): Result<ByteArray, Exception> {
+suspend fun Koma.downloadMedia(mhUrl: MHUrl, server: HttpUrl): Result<ByteArray, Exception> {
     val req = when (mhUrl) {
         is MHUrl.Mxc -> {
-            val h = mhUrl.toHttpUrl(serverConf)
+            val h = mhUrl.toHttpUrl(server)
             if (h is Result.Failure) return Result.error(h.error)
             val u = h.get()
             Request.Builder().url(u)
@@ -61,11 +60,11 @@ sealed class MHUrl {
     class Http(val http: HttpUrl,
                val maxStale: Int? = null): MHUrl()
 
-    fun toHttpUrl(server: ServerConf): Result<HttpUrl, Exception> {
+    fun toHttpUrl(server: HttpUrl): Result<HttpUrl, Exception> {
         return when (this) {
             is Http -> Result.of(this.http)
             is Mxc -> {
-                server.mxcToHttp(this.mxc)
+                mxcToHttp(this.mxc, server)
                         ?.let { Result.of(it) }
                         ?: Result.error(NullPointerException("Matrix media server not set"))
             }

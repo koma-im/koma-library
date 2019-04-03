@@ -1,28 +1,23 @@
 package koma.network.matrix.media
 
-import koma.storage.config.server.ServerConf
-import koma.storage.config.server.getAddress
-import koma.storage.config.server.getMediaPath
 import okhttp3.HttpUrl
 
 /**
  * convert mxc:// to https://
  */
-fun ServerConf.mxcToHttp(mxc: String): HttpUrl? {
+fun mxcToHttp(mxc: String, serverUrl: HttpUrl, mediaPath: String = "_matrix/media/r0/download"): HttpUrl? {
     val parts = mxc.substringAfter("mxc://")
     val serverName = parts.substringBefore('/')
     val media = parts.substringAfter('/')
 
-    val hsAddr = this.getAddress()
-    val serverUrl = HttpUrl.parse(hsAddr)!!
     val url =try {
         serverUrl.newBuilder()
-                .addPathSegments(this.getMediaPath())
+                .addPathSegments(mediaPath)
                 .addPathSegment(serverName)
                 .addPathSegment(media)
                 .build()
     } catch (e: NullPointerException) {
-        System.err.println("failed to convert $mxc using $hsAddr")
+        System.err.println("failed to convert $mxc using $serverUrl")
         e.printStackTrace()
         return null
     }
