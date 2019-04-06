@@ -1,6 +1,7 @@
 package koma.network.client.okhttp
 
 import koma.storage.config.server.cert_trust.sslConfFromStream
+import koma.util.given
 import mu.KotlinLogging
 import okhttp3.*
 import java.io.File
@@ -38,19 +39,16 @@ class AppHttpClient(
     val builder: OkHttpClient.Builder
 
     init {
-
-        val conpoo = ConnectionPool()
-        var b = http_builder?: OkHttpClient.Builder()
-        b = b.connectionPool(conpoo)
-        if (proxy != null) b = b.proxy(proxy)
-        if (cacheDir != null) {
-            b = b.cache(Cache(cacheDir, cacheSize))
-        }
-        if (trustAdditionalCertificate != null) {
-            val (s, m) = sslConfFromStream(trustAdditionalCertificate)
-            b = b.sslSocketFactory(s.socketFactory, m)
-        }
-        builder = b.addInterceptor(RetryGetPeerCert())
+        val pool = ConnectionPool()
+        builder = (http_builder?: OkHttpClient.Builder())
+                .connectionPool(pool)
+                .given(proxy) { proxy(it)}
+                .given(cacheDir) { cache(Cache(it, cacheSize))}
+                .given(trustAdditionalCertificate) {
+                    val (s, m) = sslConfFromStream(it)
+                    sslSocketFactory(s.socketFactory, m)
+                }
+                .addInterceptor(RetryGetPeerCert())
         client = builder.build()
         client.dispatcher()
     }
