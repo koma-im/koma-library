@@ -186,7 +186,7 @@ class MatrixApi(
         /***
          * homeserver base address such as https://matrix.org
          */
-        private val server: HttpUrl,
+        val server: HttpUrl,
         apiPath: String = "_matrix/client/r0/",
         private val mediaPath: String = "_matrix/media/r0/",
         /**
