@@ -23,7 +23,7 @@ data class SyncResponse(
 
 data class RoomsResponse(
         val join: Map<String, JoinedRoom>,
-        val invite: Map<String, InvitedRoom>,
+        val invite: Map<RoomId, InvitedRoom>,
         val leave: Map<RoomId, LeftRoom>
 ) {
     override fun toString(): String {

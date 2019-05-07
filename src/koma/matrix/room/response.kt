@@ -4,6 +4,7 @@ import koma.matrix.UserId
 import koma.matrix.event.ephemeral.EphemeralRawEvent
 import koma.matrix.event.GeneralEvent
 import koma.matrix.event.room_message.RoomEvent
+import koma.matrix.event.room_message.RoomEventType
 import koma.matrix.sync.Events
 import koma.matrix.sync.RawMessage
 
@@ -23,16 +24,16 @@ data class  Timeline<T>(
 )
 
 data class InvitedRoom(
-        val invited_state: Events<InviteEvent>
+        val invite_state: Events<InviteEvent>
 )
 
 data class InviteEvent(
         // only these 4 keys are allowed
         // this event doesn't replace previous states
         val sender: UserId,
-        val type: String,
+        val type: RoomEventType,
         val state_key: String,
-        val content: Map<String, Any>
+        val content: Any
 )
 
 data class LeftRoom(

@@ -30,7 +30,8 @@ private class MessageAdapter(m: Moshi): JsonAdapter<M_Message>() {
     )
     private val keyFinder = JsonKeyFinder("msgtype")
 
-    val mapAdapter = m.adapter<Map<String, Any>>(Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java))
+    val mapAdapter = m.adapter<Map<String, Any>>(
+            Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java))
 
     override fun toJson(writer: JsonWriter, msg: M_Message?) {
         msg ?: return
