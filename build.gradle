@@ -28,13 +28,6 @@ repositories {
     }
 }
 
-sourceSets {
-    main {
-        main.java.srcDirs = ["src"]
-        main.kotlin.srcDirs = ["src"]
-    }
-}
-
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
     from sourceSets.main.allSource
@@ -61,6 +54,6 @@ dependencies {
 }
 
 group = 'io.github.koma-im'
-version = '0.7.7'
+version = '0.7.8'
 description = 'koma-library'
 sourceCompatibility = '9'
