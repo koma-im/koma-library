@@ -11,6 +11,7 @@ import koma.matrix.event.room_message.state.RoomAvatarContent
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.event.room_message.state.RoomNameContent
 import koma.matrix.json.MoshiInstance
+import koma.matrix.json.RawJson
 import koma.matrix.media.parseMediaUrl
 import koma.matrix.pagination.FetchDirection
 import koma.matrix.pagination.RoomBatch
@@ -105,7 +106,7 @@ interface MatrixAccessApiDef {
             // optional params
             @Query("limit") limit: Int = 100,
             @Query("to") to: String? = null
-    ): Call<Chunked<RoomEvent>>
+    ): Call<Chunked<RawJson<RoomEvent>>>
 
     @POST("rooms/{roomId}/invite")
     fun inviteUser(@Path("roomId") roomId: String,
@@ -211,7 +212,7 @@ class MatrixApi(
         return service.createRoom(token, settings)
     }
 
-    fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null): Call<Chunked<RoomEvent>> {
+    fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null): Call<Chunked<RawJson<RoomEvent>>> {
         return service.getMessages(roomId, token, from, direction, to=to)
     }
 

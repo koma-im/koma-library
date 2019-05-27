@@ -5,6 +5,7 @@ import koma.matrix.event.ephemeral.EphemeralRawEvent
 import koma.matrix.event.GeneralEvent
 import koma.matrix.event.room_message.RoomEvent
 import koma.matrix.event.room_message.RoomEventType
+import koma.matrix.json.RawJson
 import koma.matrix.sync.Events
 import koma.matrix.sync.RawMessage
 
@@ -14,7 +15,7 @@ data class JoinedRoom(
         val account_data: Events<GeneralEvent>,
         val ephemeral: Events<EphemeralRawEvent>,
         val state: Events<RoomEvent>,
-        val timeline: Timeline<RoomEvent>
+        val timeline: Timeline<RawJson<RoomEvent>>
 )
 
 data class  Timeline<T>(

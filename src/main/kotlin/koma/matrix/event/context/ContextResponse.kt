@@ -1,6 +1,7 @@
 package koma.matrix.event.context
 
 import koma.matrix.event.room_message.RoomEvent
+import koma.matrix.json.RawJson
 
 
 data class ContextResponse(
@@ -10,8 +11,8 @@ data class ContextResponse(
          */
         val start: String,
         val end: String,
-        val events_before: List<RoomEvent>,
-        val event: RoomEvent,
-        val events_after: List<RoomEvent>,
+        val events_before: List<RawJson<RoomEvent>>,
+        val event: RawJson<RoomEvent>,
+        val events_after: List<RawJson<RoomEvent>>,
         val state: List<Map<String, Any>>
 )

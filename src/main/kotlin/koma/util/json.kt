@@ -5,11 +5,8 @@ import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-private val adapter by lazy {
-    MoshiInstance.moshi.adapter(Map::class.java).indent("    ")
-}
-
 fun formatJson(input: String): String {
+    val adapter = MoshiInstance.mapAdapterIndented
     val v = try {
         adapter.fromJson(input)
     } catch (e: Exception) {

@@ -14,7 +14,10 @@ object MoshiInstance{
             .add(RoomEventAdapterFactory())
             .add(NewTypeStringAdapterFactory())
             .add(RoomEventTypeEnumAdapter())
+            .add(RawJsonAdapterFactory())
     val moshi = moshiBuilder.build()
+    val mapAdapter = moshi.adapter(Map::class.java)
+    val mapAdapterIndented = mapAdapter.indent("    ")
     val roomEventAdapter = moshi.adapter(RoomEvent::class.java)
     init {
     }

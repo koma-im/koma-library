@@ -12,7 +12,7 @@ class RoomAliasesContent(
         val aliases: List<RoomAlias>
 )
 
-class RoomCanonAliasContent(
+data class RoomCanonAliasContent(
         // empty when it's a delete event
         val alias: RoomAlias?
 )
