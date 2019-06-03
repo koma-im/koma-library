@@ -1,6 +1,7 @@
 package koma.matrix
 
 import com.github.kittinunf.result.Result
+import com.github.kittinunf.result.flatMap
 import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
@@ -30,6 +31,8 @@ import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
+import koma.util.coroutine.adapter.retrofit.HttpException
+import koma.util.coroutine.adapter.retrofit.MatrixException
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import mu.KotlinLogging
 import okhttp3.HttpUrl
@@ -40,6 +43,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.*
 import java.io.File
+import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
@@ -135,6 +139,13 @@ interface MatrixAccessApiDef {
             @Query("access_token") token: String,
             @Body content: Any): Call<SendResult>
 
+    @GET("rooms/{roomId}/state/{eventType}")
+    fun getStateEvent(
+            @Path("roomId") roomId: RoomId,
+            @Path("eventType") type: RoomEventType,
+            @Query("access_token") token: String
+    ): Call<Map<String, Any>>
+
     @GET("rooms/{roomId}/context/{eventId}")
     fun getEventContext(@Path("roomId") roomId: RoomId,
                  @Path("eventId") eventId: EventId,
@@ -167,7 +178,6 @@ interface MatrixAccessApiDef {
     @GET("profile/{userId}/displayname")
     fun getDisplayName(@Path("userId") user_id: String
     ): Call<DisplayName>
-
 }
 
 /**
@@ -273,6 +283,45 @@ class MatrixApi(
     fun setRoomName(roomid: RoomId, name: RoomNameContent)
             = service.sendStateEvent(roomid, RoomEventType.Name, token, name)
 
+    suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Exception> {
+        val r = service.getStateEvent(roomId, RoomEventType.Name, token).awaitMatrix()
+        val n: Result<Optional<String>, Exception> = when(r) {
+            is Result.Failure -> {
+                val e = r.error
+                if (e is HttpException && e.code == 404) {
+                    Result.Success(Optional.empty())
+                }else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
+                    Result.Success(Optional.empty())
+                } else {
+                    return Result.error(e)
+                }
+            }
+            is Result.Success -> {
+                Result.Success(Optional.ofNullable(r.value.get("name") as String))
+            }
+        }
+        return n
+    }
+    suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Exception> {
+        val r = service.getStateEvent(roomId, RoomEventType.Avatar, token).awaitMatrix()
+        val n: Result<Optional<String>, Exception> = when(r) {
+            is Result.Failure -> {
+                val e = r.error
+                if (e is HttpException && e.code == 404) {
+                    Result.Success(Optional.empty())
+                } else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
+                    Result.Success(Optional.empty())
+                }   else{
+                    return Result.error(e)
+                }
+            }
+            is Result.Success -> {
+                logger.debug { "got room avatar ${r.value}" }
+                Result.Success(Optional.ofNullable(r.value.get("url") as String))
+            }
+        }
+        return n
+    }
     fun resolveRoomAlias(roomAlias: String): Call<ResolveRoomAliasResult> {
         val call: Call<ResolveRoomAliasResult> = service.resolveRoomAlias(roomAlias)
         return call
