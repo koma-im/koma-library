@@ -58,6 +58,6 @@ dependencies {
 }
 
 group = 'io.github.koma-im'
-version = '0.7.14'
+version = '0.7.15'
 description = 'koma-library'
 sourceCompatibility = '9'

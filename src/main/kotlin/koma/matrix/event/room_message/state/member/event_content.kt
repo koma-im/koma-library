@@ -8,12 +8,14 @@ class RoomMemberContent(
         val avatar_url: String?,
         val displayname: String?,
         val is_direct: Boolean?,
-        val third_party_invite: Invite?
+        val third_party_invite: Invite?,
+        val inviter: UserId?
 )
 
 class PrevContent(
         val avatar_url: String?,
         val membership: Membership?,
+        val is_direct: Boolean?,
         val displayname: String?
 )
 
