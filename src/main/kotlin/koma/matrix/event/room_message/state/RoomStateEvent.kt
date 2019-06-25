@@ -145,6 +145,15 @@ class MRoomGuestAccess(
         val sender: UserId,
         val state_key: String?,
         val txn_id: String?,
-        val content: Map<String, Any>
-): RoomStateEvent(event_id, origin_server_ts, RoomEventType.GuestAccess)
+        val content: Content
+): RoomStateEvent(event_id, origin_server_ts, RoomEventType.GuestAccess) {
+    data class Content(
+            val guest_access: GuestAccess
+    ) {
+        enum class GuestAccess{
+            can_join,
+            forbidden
+        }
+    }
+}
 
