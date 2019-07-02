@@ -1,30 +1,24 @@
 package koma.util.coroutine.adapter.retrofit
 
-import com.github.kittinunf.result.Result
-import com.github.kittinunf.result.flatMap
 import koma.matrix.json.MoshiInstance
+import koma.util.flatMap
 import mu.KotlinLogging
 import retrofit2.Call
 import retrofit2.Response
+
+import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
 
 suspend fun <T : Any> Call<T>.awaitMatrix(): Result<T, Exception>
         = this.await().flatMap { it.extractBody() }
 
-fun Exception.isTemporaryNetFailure(): Boolean {
-    return when {
-        this is MatrixException -> false
-        this is HttpException -> false
-        else -> true
-    }
-}
 
 private fun<T: Any> Response<T>.extractBody(): Result<T, Exception> {
     return if (this.isSuccessful) {
         val body = this.body()
         if (body == null) Result.error(NullPointerException("Response body is null"))
-        else Result.of(body)
+        else Result.success(body)
     } else {
         val s = this.errorBody()?.source()?.readUtf8()
         val me = s?.let { MatrixError.fromString(it) }

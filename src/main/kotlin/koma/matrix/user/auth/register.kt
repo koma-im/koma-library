@@ -1,9 +1,12 @@
 package koma.matrix.user.auth
 
-import com.github.kittinunf.result.Result
 import koma.matrix.UserId
 import koma.matrix.json.MoshiInstance
 import koma.network.client.okhttp.AppHttpClient
+import koma.util.flatMap
+import koma.util.onFailure
+import koma.util.recover
+import koma.util.KResult as Result
 import okhttp3.HttpUrl
 import retrofit2.Call
 import retrofit2.Retrofit
@@ -51,8 +54,7 @@ class Register(val server: HttpUrl, httpClient: AppHttpClient) {
     suspend fun getFlows(): Result<Unauthorized, Exception> {
         val data = RegisterData.Query()
         val result = service.register(data).awaitMatrixAuth()
-        if (result is Result.Failure) {
-            val ex = result.error
+        result.onFailure {ex ->
             if (ex is AuthException.AuthFail) {
                 session = ex.status.session // Save identifier for future requests
                 return Result.of(ex.status)

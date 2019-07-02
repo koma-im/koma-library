@@ -1,14 +1,14 @@
 package koma.controller.sync
 
-import com.github.kittinunf.result.Result
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
+import koma.util.onSuccess
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
 import mu.KotlinLogging
 import java.time.Instant
-
+import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
 
@@ -79,15 +79,13 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?) {
                     is SyncStatus.Response -> {
                         val res = ss.response
                         events.send(res)
-                        when (res) {
-                            is Result.Success -> {
-                                since = res.value.next_batch
-                            }
-                            is Result.Failure -> {
-                                val e = res.error
-                                logger.warn { "Exception during sync: ${e}" }
-                                break@sync
-                            }
+                        res.onSuccess {
+                            since = it.next_batch
+                        }
+                        val e = res.failureOrNull()
+                        if (e != null) {
+                            logger.warn { "Exception during sync: $e" }
+                            break@sync
                         }
                     }
                     is SyncStatus.Resync -> {

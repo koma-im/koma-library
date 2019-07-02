@@ -34,7 +34,6 @@ dependencies {
     compile("com.squareup.retrofit2:retrofit:2.5.0")
     implementation("com.squareup.retrofit2:converter-moshi:2.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.1")
-    implementation("com.github.kittinunf.result:result:2.0.0")
     implementation("io.github.microutils:kotlin-logging:1.6.22")
     implementation("org.slf4j:slf4j-api:1.8.0-beta2")
     implementation("org.jetbrains.kotlin:kotlin-test:1.3.40")

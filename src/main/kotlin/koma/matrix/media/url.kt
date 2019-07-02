@@ -1,6 +1,6 @@
 package koma.matrix.media
 
-import com.github.kittinunf.result.Result
+import koma.util.KResult as Result
 import okhttp3.HttpUrl
 
 /**

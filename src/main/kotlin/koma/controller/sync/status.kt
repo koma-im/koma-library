@@ -1,8 +1,8 @@
 package koma.controller.sync
 
-import com.github.kittinunf.result.Result
 import koma.matrix.sync.SyncResponse
 import kotlinx.coroutines.CompletableDeferred
+import koma.util.KResult as Result
 
 sealed class SyncStatus {
     class Resync(): SyncStatus()

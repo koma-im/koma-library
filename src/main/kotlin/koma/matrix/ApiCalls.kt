@@ -1,7 +1,6 @@
 package koma.matrix
 
-import com.github.kittinunf.result.Result
-import com.github.kittinunf.result.flatMap
+import koma.util.KResult as Result
 import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
@@ -34,6 +33,8 @@ import koma.network.client.okhttp.AppHttpClient
 import koma.util.coroutine.adapter.retrofit.HttpException
 import koma.util.coroutine.adapter.retrofit.MatrixException
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
+import koma.util.getOrThrow
+import koma.util.onFailure
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.MediaType
@@ -256,7 +257,7 @@ class MatrixApi(
             this.userId, token,
             DisplayName(newname))
 
-    suspend fun getDisplayName(user: String): Result<DisplayName, Exception> {
+    suspend fun getDisplayName(user: String): Result<DisplayName, Throwable> {
         return service.getDisplayName(user).awaitMatrix()
     }
 
@@ -283,44 +284,35 @@ class MatrixApi(
     fun setRoomName(roomid: RoomId, name: RoomNameContent)
             = service.sendStateEvent(roomid, RoomEventType.Name, token, name)
 
-    suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Exception> {
+    suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Throwable> {
         val r = service.getStateEvent(roomId, RoomEventType.Name, token).awaitMatrix()
-        val n: Result<Optional<String>, Exception> = when(r) {
-            is Result.Failure -> {
-                val e = r.error
-                if (e is HttpException && e.code == 404) {
-                    Result.Success(Optional.empty())
-                }else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
-                    Result.Success(Optional.empty())
-                } else {
-                    return Result.error(e)
-                }
-            }
-            is Result.Success -> {
-                Result.Success(Optional.ofNullable(r.value.get("name") as String))
+        r.onFailure { e ->
+            return if (e is HttpException && e.code == 404) {
+                Result.success(Optional.empty())
+            }else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
+                Result.success(Optional.empty())
+            } else {
+                Result.failure(e)
             }
         }
-        return n
+        val n = r.getOrThrow().get("name") as String
+        return Result.success(Optional.ofNullable(n))
     }
-    suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Exception> {
+    suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Throwable> {
         val r = service.getStateEvent(roomId, RoomEventType.Avatar, token).awaitMatrix()
-        val n: Result<Optional<String>, Exception> = when(r) {
-            is Result.Failure -> {
-                val e = r.error
-                if (e is HttpException && e.code == 404) {
-                    Result.Success(Optional.empty())
-                } else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
-                    Result.Success(Optional.empty())
-                }   else{
-                    return Result.error(e)
-                }
+        if (r.isFailure) {
+            val e = r.failureOrNull()!!
+            return if (e is HttpException && e.code == 404) {
+                Result.success(Optional.empty())
+            } else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
+                Result.success(Optional.empty())
+            }   else{
+                Result.failure(e)
             }
-            is Result.Success -> {
-                logger.debug { "got room avatar ${r.value}" }
-                Result.Success(Optional.ofNullable(r.value.get("url") as String))
-            }
+        } else {
+            logger.debug { "got room avatar ${r.getOrNull()}" }
+            return Result.success(Optional.ofNullable(r.getOrNull()!!.get("url") as String))
         }
-        return n
     }
     fun resolveRoomAlias(roomAlias: String): Call<ResolveRoomAliasResult> {
         val call: Call<ResolveRoomAliasResult> = service.resolveRoomAlias(roomAlias)
@@ -328,7 +320,7 @@ class MatrixApi(
     }
 
     suspend fun sendMessage(roomId: RoomId, message: M_Message
-    ): Result<SendResult, Exception> {
+    ): Result<SendResult, Throwable> {
         val tid = getTxnId()
         logger.info { "sending to room $roomId message $tid with content $message" }
 

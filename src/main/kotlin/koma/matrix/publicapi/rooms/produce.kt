@@ -1,9 +1,10 @@
 package koma.matrix.publicapi.rooms
 
-import com.github.kittinunf.result.Result
 import koma.matrix.DiscoveredRoom
 import koma.matrix.MatrixApi
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
+import koma.util.failureOrThrow
+import koma.util.getOrThrow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.produce
@@ -17,9 +18,9 @@ fun getPublicRooms(client: MatrixApi) = GlobalScope.produce<DiscoveredRoom>(capa
     var fetched = 0
     while (true) {
         val call_res = service.publicRooms(since).awaitMatrix()
-        when (call_res) {
-            is Result.Success -> {
-                val roomBatch = call_res.value
+        when {
+            call_res.isSuccess -> {
+                val roomBatch = call_res.getOrThrow()
                 val rooms = roomBatch.chunk
                 fetched += rooms.size
                 println("Fetched ${rooms.size} rooms ($fetched/${roomBatch.total_room_count_estimate})")
@@ -48,8 +49,8 @@ fun findPublicRooms(term: String, service: MatrixApi) = GlobalScope.produce() {
         val call_res = service.findPublicRooms(
                 RoomDirectoryQuery(RoomDirectoryFilter(term), since = since)
                 ).awaitMatrix()
-        val (roomBatch, error) = call_res
-        if (roomBatch != null){
+        if (call_res.isSuccess) {
+            val roomBatch = call_res.getOrThrow()
             val rooms = roomBatch.chunk
             fetched += rooms.size
             println("Fetched ${rooms.size} rooms match $term ($fetched/${roomBatch.total_room_count_estimate})")
@@ -61,8 +62,8 @@ fun findPublicRooms(term: String, service: MatrixApi) = GlobalScope.produce() {
                 return@produce
             }
             since = next
-        }
-        if (error != null) {
+        } else {
+            val error = call_res.failureOrThrow()
             if (error is HttpException) {
                 println("Http Error ${error.code()} ${error.message()} finding public rooms with $term")
                 close()

@@ -1,12 +1,13 @@
 package koma.matrix.user.auth
 
-import com.github.kittinunf.result.Result
-import com.github.kittinunf.result.mapError
+import koma.util.KResult as Result
 import koma.matrix.json.MoshiInstance
 import koma.util.coroutine.adapter.retrofit.HttpException
 import koma.util.coroutine.adapter.retrofit.MatrixError
 import koma.util.coroutine.adapter.retrofit.MatrixException
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
+import koma.util.mapErr
+import koma.util.onFailure
 import retrofit2.Call
 
 
@@ -15,20 +16,21 @@ import retrofit2.Call
  */
 suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Exception> {
     val result = this.awaitMatrix()
-            .mapError { error ->
+            .mapErr { error ->
                 if (error is MatrixException) {
-                    return@mapError AuthException.MatrixFail(error.mxErr)
+                    AuthException.MatrixFail(error.mxErr)
                 } else if (error is HttpException) {
                     if (error.code == 401 && error.body != null) {
                         val unauth = Unauthorized.fromSource(error.body)
                         if (unauth != null) {
-                            return@mapError AuthException.AuthFail(unauth)
-                        }
+                            AuthException.AuthFail(unauth)
+                        } else error
                     } else {
-                        return@mapError AuthException.HttpFail(error)
+                        AuthException.HttpFail(error)
                     }
+                } else {
+                    error
                 }
-                return@mapError error
             }
     return result
 }

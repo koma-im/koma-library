@@ -1,7 +1,7 @@
 package koma.util.coroutine.adapter.okhttp
 
-import com.github.kittinunf.result.Result
 import koma.util.coroutine.adapter.retrofit.HttpException
+import koma.util.KResult as Result
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
