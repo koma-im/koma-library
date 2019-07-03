@@ -1,6 +1,9 @@
 package koma.util.coroutine.adapter.okhttp
 
-import koma.util.coroutine.adapter.retrofit.HttpException
+import koma.Failure
+import koma.HttpFailure
+import koma.IOFailure
+import koma.InvalidData
 import koma.util.KResult as Result
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -15,7 +18,7 @@ import kotlin.coroutines.resume
 /**
  * Suspend extension that allows suspend [Call] inside coroutine.
  */
-suspend fun Call.await(): Result<Response, Exception> {
+suspend fun Call.await(): Result<Response, Failure> {
     return suspendCancellableCoroutine { continuation ->
         enqueue(object : Callback {
             override fun onResponse(call: Call?, response: Response) {
@@ -25,7 +28,7 @@ suspend fun Call.await(): Result<Response, Exception> {
             override fun onFailure(call: Call, t: IOException) {
                 // Don't bother with resuming the continuation if it is already cancelled.
                 if (continuation.isCancelled) return
-                continuation.resume(Result.error(t))
+                continuation.resume(Result.failure(IOFailure(t)))
             }
         })
 
@@ -33,13 +36,14 @@ suspend fun Call.await(): Result<Response, Exception> {
     }
 }
 
-fun Response.extract(): Result<ResponseBody, Exception> {
+fun Response.extract(): Result<ResponseBody, Failure> {
     return if (this.isSuccessful) {
         val body = this.body()
-        if (body == null) Result.error(NullPointerException("Response body is null"))
+        if (body == null) Result.failure(InvalidData("Response body is null"))
         else Result.of(body)
     } else {
-        Result.error(HttpException.fromOkhttp(this))
+        body()?.close()
+        Result.failure(HttpFailure(this.code(), this.message()))
     }
 }
 

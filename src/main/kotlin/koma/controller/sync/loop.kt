@@ -1,5 +1,6 @@
 package koma.controller.sync
 
+import koma.Failure
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
 import koma.util.onSuccess
@@ -44,7 +45,7 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?) {
     /**
      * channel of responses from the sync api
      */
-    val events = Channel<Result<SyncResponse, Exception>>(3)
+    val events = Channel<Result<SyncResponse, Failure>>(3)
     /**
      * check whether the computer was not running for some time
      */

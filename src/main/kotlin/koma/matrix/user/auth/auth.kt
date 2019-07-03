@@ -1,38 +1,36 @@
 package koma.matrix.user.auth
 
+import koma.AuthFailure
+import koma.Failure
+import koma.HttpFailure
+import koma.IOFailure
 import koma.util.KResult as Result
 import koma.matrix.json.MoshiInstance
-import koma.util.coroutine.adapter.retrofit.HttpException
-import koma.util.coroutine.adapter.retrofit.MatrixError
-import koma.util.coroutine.adapter.retrofit.MatrixException
+import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
+import koma.util.coroutine.adapter.retrofit.extractBody
+import koma.util.getOr
 import koma.util.mapErr
 import koma.util.onFailure
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import retrofit2.Call
-
 
 /**
  * the server may return instructions for further authentication
  */
-suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Exception> {
-    val result = this.awaitMatrix()
-            .mapErr { error ->
-                if (error is MatrixException) {
-                    AuthException.MatrixFail(error.mxErr)
-                } else if (error is HttpException) {
-                    if (error.code == 401 && error.body != null) {
-                        val unauth = Unauthorized.fromSource(error.body)
-                        if (unauth != null) {
-                            AuthException.AuthFail(unauth)
-                        } else error
-                    } else {
-                        AuthException.HttpFail(error)
-                    }
-                } else {
-                    error
-                }
-            }
-    return result
+suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Failure> {
+    val res = this.await() getOr {return Result.failure(IOFailure(it))}
+    val body = res.errorBody()
+    if (res.code() == 401 && body!=null) {
+        val unauth = withContext(Dispatchers.IO) {
+            Unauthorized.jsonAdapter.fromJson(body.source())
+        }
+        if (unauth != null) {
+            return Result.failure(AuthFailure(unauth, res.code(), res.message()))
+        }
+    }
+    return res.extractBody()
 }
 
 
@@ -53,9 +51,7 @@ data class Unauthorized(
     }
     companion object {
         private val moshi = MoshiInstance.moshi
-        private val jsonAdapter = moshi.adapter(Unauthorized::class.java)
-
-        fun fromSource(bs: String): Unauthorized? =  jsonAdapter.fromJson(bs)
+        val jsonAdapter = moshi.adapter(Unauthorized::class.java)
     }
 }
 
@@ -88,14 +84,4 @@ sealed class AuthType(val type: String) {
             is Other -> this.type
         }
     }
-}
-
-sealed class AuthException(message: String): Exception(message) {
-    class AuthFail(
-            val status: Unauthorized): AuthException(status.toString())
-    class MatrixFail(
-            val error: MatrixError): AuthException(error.toString())
-    // Other http errors
-    class HttpFail(
-            val error: HttpException): AuthException(error.message)
 }

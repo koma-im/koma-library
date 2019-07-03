@@ -1,5 +1,8 @@
 package koma.matrix.user.auth
 
+import koma.AuthFailure
+import koma.Failure
+import koma.OtherFailure
 import koma.matrix.UserId
 import koma.matrix.json.MoshiInstance
 import koma.network.client.okhttp.AppHttpClient
@@ -51,21 +54,21 @@ class Register(val server: HttpUrl, httpClient: AppHttpClient) {
     private val service = retrofit.create(MatrixRegisterApi::class.java)
     private var session: String? = null
 
-    suspend fun getFlows(): Result<Unauthorized, Exception> {
+    suspend fun getFlows(): Result<Unauthorized, Failure> {
         val data = RegisterData.Query()
         val result = service.register(data).awaitMatrixAuth()
         result.onFailure {ex ->
-            if (ex is AuthException.AuthFail) {
+            if (ex is AuthFailure) {
                 session = ex.status.session // Save identifier for future requests
                 return Result.of(ex.status)
             }
             return Result.error(ex)
         }
-        return Result.error(Exception("Unexpected"))
+        return Result.failure(OtherFailure("Unexpected $result"))
     }
 
     suspend fun registerByPassword(username: String, password: String):
-            Result<RegisterdUser, Exception> {
+            Result<RegisterdUser, Failure> {
         val data = RegisterData.Password(username, password)
         println("register user $username on ${server}")
         return service.register(data).awaitMatrixAuth()

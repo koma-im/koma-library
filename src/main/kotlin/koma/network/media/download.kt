@@ -1,6 +1,8 @@
 package koma.network.media
 
+import koma.Failure
 import koma.Koma
+import koma.OtherFailure
 import koma.network.matrix.media.mxcToHttp
 import koma.util.coroutine.adapter.okhttp.await
 import koma.util.coroutine.adapter.okhttp.extract
@@ -11,16 +13,16 @@ import okhttp3.*
 import koma.util.KResult as Result
 import java.util.concurrent.TimeUnit
 
-suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Exception> {
+suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Failure> {
     val req = Request.Builder().url(url).build()
-    val httpres = this.http.client.newCall(req).await()
-    return httpres.flatMap { res -> res.extract() }
+    val httpres = this.http.client.newCall(req).await() getOr { return Result.failure(it)}
+    return httpres.extract()
 }
 
-suspend fun Koma.downloadMedia(mhUrl: MHUrl, server: HttpUrl): Result<ByteArray, Exception> {
+suspend fun Koma.downloadMedia(mhUrl: MHUrl, server: HttpUrl): Result<ByteArray, Failure> {
     val req = when (mhUrl) {
         is MHUrl.Mxc -> {
-            val u = mhUrl.toHttpUrl(server)?:return Result.error(Exception("url $mhUrl"))
+            val u = mhUrl.toHttpUrl(server)?:return Result.failure(OtherFailure("url $mhUrl"))
             Request.Builder().url(u)
                     .cacheControl(CacheControl
                             .Builder()
@@ -43,7 +45,7 @@ suspend fun Koma.downloadMedia(mhUrl: MHUrl, server: HttpUrl): Result<ByteArray,
     return bs
 }
 
-private suspend fun Koma.getHttpBytes(req: Request): Result<ByteArray, Exception> {
+private suspend fun Koma.getHttpBytes(req: Request): Result<ByteArray, Failure> {
     val hr = this.http.client.newCall(req).await()
     val body = hr.flatMap { it.extract() }
     val v = body.map { it.bytes() }

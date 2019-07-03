@@ -1,5 +1,8 @@
 package koma.matrix
 
+import koma.Failure
+import koma.HttpFailure
+import koma.MatrixFailure
 import koma.util.KResult as Result
 import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
@@ -30,8 +33,6 @@ import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
-import koma.util.coroutine.adapter.retrofit.HttpException
-import koma.util.coroutine.adapter.retrofit.MatrixException
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import koma.util.getOrThrow
 import koma.util.onFailure
@@ -257,7 +258,7 @@ class MatrixApi(
             this.userId, token,
             DisplayName(newname))
 
-    suspend fun getDisplayName(user: String): Result<DisplayName, Throwable> {
+    suspend fun getDisplayName(user: String): Result<DisplayName, Failure> {
         return service.getDisplayName(user).awaitMatrix()
     }
 
@@ -284,12 +285,12 @@ class MatrixApi(
     fun setRoomName(roomid: RoomId, name: RoomNameContent)
             = service.sendStateEvent(roomid, RoomEventType.Name, token, name)
 
-    suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Throwable> {
+    suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Failure> {
         val r = service.getStateEvent(roomId, RoomEventType.Name, token).awaitMatrix()
         r.onFailure { e ->
-            return if (e is HttpException && e.code == 404) {
+            return if (e is HttpFailure && e.http_code == 404) {
                 Result.success(Optional.empty())
-            }else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
+            }else if (e is MatrixFailure && e.errcode == "M_NOT_FOUND") {
                 Result.success(Optional.empty())
             } else {
                 Result.failure(e)
@@ -298,13 +299,13 @@ class MatrixApi(
         val n = r.getOrThrow().get("name") as String
         return Result.success(Optional.ofNullable(n))
     }
-    suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Throwable> {
+    suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Failure> {
         val r = service.getStateEvent(roomId, RoomEventType.Avatar, token).awaitMatrix()
         if (r.isFailure) {
             val e = r.failureOrNull()!!
-            return if (e is HttpException && e.code == 404) {
+            return if (e is HttpFailure && e.http_code == 404) {
                 Result.success(Optional.empty())
-            } else if (e is MatrixException && e.mxErr.errcode == "M_NOT_FOUND") {
+            } else if (e is MatrixFailure && e.errcode == "M_NOT_FOUND") {
                 Result.success(Optional.empty())
             }   else{
                 Result.failure(e)
@@ -320,7 +321,7 @@ class MatrixApi(
     }
 
     suspend fun sendMessage(roomId: RoomId, message: M_Message
-    ): Result<SendResult, Throwable> {
+    ): Result<SendResult, Failure> {
         val tid = getTxnId()
         logger.info { "sending to room $roomId message $tid with content $message" }
 
@@ -331,7 +332,7 @@ class MatrixApi(
 
     fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query)
 
-    suspend fun asyncEvents(from: String?): Result<SyncResponse, Exception> {
+    suspend fun asyncEvents(from: String?): Result<SyncResponse, Failure> {
         val syRes = longPollService.getEvents(from, token).awaitMatrix()
         return syRes
     }

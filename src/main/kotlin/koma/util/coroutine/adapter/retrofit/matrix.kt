@@ -1,7 +1,9 @@
 package koma.util.coroutine.adapter.retrofit
 
+import koma.*
 import koma.matrix.json.MoshiInstance
 import koma.util.flatMap
+import koma.util.getOr
 import mu.KotlinLogging
 import retrofit2.Call
 import retrofit2.Response
@@ -10,63 +12,29 @@ import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
 
-suspend fun <T : Any> Call<T>.awaitMatrix(): Result<T, Exception>
-        = this.await().flatMap { it.extractBody() }
+suspend fun <T : Any> Call<T>.awaitMatrix(): Result<T, Failure> {
+    val res = this.await() getOr {return Result.failure(IOFailure(it))}
+    return res.extractBody()
+}
 
-
-private fun<T: Any> Response<T>.extractBody(): Result<T, Exception> {
+fun<T> Response<T>.extractBody(): Result<T, Failure> {
     return if (this.isSuccessful) {
         val body = this.body()
-        if (body == null) Result.error(NullPointerException("Response body is null"))
+        if (body == null) Result.failure(InvalidData("Response body is null"))
         else Result.success(body)
     } else {
-        val s = this.errorBody()?.source()?.readUtf8()
-        val me = s?.let { MatrixError.fromString(it) }
-        val e = if (me != null) {
-            MatrixException(this.code(), this.message(), me, s)
-        } else {
-            HttpException(this.code(), this.message(), body = s)
-        }
-        Result.error(e)
+        val e = this.errorBody()?.string()?.let {
+            tryGetMatrixFailure(it, this.code(), this.message())
+        }?: HttpFailure(this.code(), this.message())
+        Result.failure(e)
     }
 }
 
-class MatrixException(code: Int, msg: String, val mxErr: MatrixError, body: String? = null)
-    : Exception(msg)
-{
-    val httpException = HttpException(code, msg, body)
-    val matrixErrorMessage by lazy { "Matrix Error ${mxErr.errcode} ${mxErr.error}" }
-    val fullerErrorMessage by lazy {
-        "$httpException\n" +
-                "Matrix Error ${mxErr.errcode} ${mxErr.error}"
-    }
-
-    override fun toString(): String = matrixErrorMessage
-}
-
-class MatrixError(
-        val errcode: String,
-        val error: String
-) {
-    override fun toString() = "$errcode: $error"
-
-    companion object {
-        private val moshi = MoshiInstance.moshi
-        private val jsonAdapter = moshi.adapter(MatrixError::class.java)
-
-        fun fromString(s: String): MatrixError? {
-            try {
-                val e = jsonAdapter.fromJson(s)
-                e ?: return null
-                // moshi may disregard kotlin's non-nullability
-                // and anything could be parsed as nulls
-                if (e.errcode == null) {
-                    return null
-                }
-                return e
-            } catch (e: java.lang.Exception) {
-                return null
-            }
-        }
-    }
+@Suppress("UNCHECKED_CAST")
+private fun tryGetMatrixFailure(s: String, code: Int, message: String): MatrixFailure? {
+    val m = MoshiInstance.mapAdapter.fromJson(s) ?: return null
+    val j: MutableMap<String, Any> = m as MutableMap<String, Any>
+    val c = j.remove("errcode")?.toString() ?: return null
+    val e = j.remove("error")?.toString() ?: return null
+    return MatrixFailure(c, e, j, code, message)
 }
