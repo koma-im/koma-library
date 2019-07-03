@@ -12,12 +12,14 @@ import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
 
-suspend fun <T : Any> Call<T>.awaitMatrix(): Result<T, Failure> {
-    val res = this.await() getOr {return Result.failure(IOFailure(it))}
-    return res.extractBody()
+internal suspend fun <T : Any> Call<T>.awaitMatrix(): Result<T, KomaFailure> {
+    return this.await().flatMap { it.extractMatrix() }
 }
 
-fun<T> Response<T>.extractBody(): Result<T, Failure> {
+/**
+ * extract deserilized successful response or failure
+ */
+internal fun<T> Response<T>.extractMatrix(): Result<T, KomaFailure> {
     return if (this.isSuccessful) {
         val body = this.body()
         if (body == null) Result.failure(InvalidData("Response body is null"))

@@ -8,9 +8,8 @@ import koma.util.KResult as Result
 import koma.matrix.json.MoshiInstance
 import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma.util.coroutine.adapter.retrofit.extractBody
+import koma.util.coroutine.adapter.retrofit.extractMatrix
 import koma.util.getOr
-import koma.util.mapErr
 import koma.util.onFailure
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,8 +18,8 @@ import retrofit2.Call
 /**
  * the server may return instructions for further authentication
  */
-suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Failure> {
-    val res = this.await() getOr {return Result.failure(IOFailure(it))}
+internal suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Failure> {
+    val res = this.await() getOr {return Result.failure(it)}
     val body = res.errorBody()
     if (res.code() == 401 && body!=null) {
         val unauth = withContext(Dispatchers.IO) {
@@ -30,7 +29,7 @@ suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Failure> {
             return Result.failure(AuthFailure(unauth, res.code(), res.message()))
         }
     }
-    return res.extractBody()
+    return res.extractMatrix()
 }
 
 

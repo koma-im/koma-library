@@ -1,5 +1,8 @@
 package koma.util.coroutine.adapter.retrofit
 
+import koma.Failure
+import koma.IOFailure
+import koma.KomaFailure
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import retrofit2.Call
@@ -11,7 +14,7 @@ import koma.util.KResult as Result
 /**
  * Suspend extension for [Call] that returns a result
  */
-suspend fun <T : Any> Call<T>.await(): Result<Response<T>, Exception> {
+internal suspend fun <T : Any> Call<T>.await(): Result<Response<T>, KomaFailure> {
     return suspendCancellableCoroutine { continuation ->
         enqueue(object : Callback<T> {
             override fun onResponse(call: Call<T>?, response: Response<T>) {
@@ -21,7 +24,7 @@ suspend fun <T : Any> Call<T>.await(): Result<Response<T>, Exception> {
             override fun onFailure(call: Call<T>, t: Throwable) {
                 // Don't bother with resuming the continuation if it is already cancelled.
                 if (continuation.isCancelled) return
-                continuation.resume(Result.failure(Exception(t)))
+                continuation.resume(Result.failure(IOFailure(t)))
             }
         })
 

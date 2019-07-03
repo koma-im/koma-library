@@ -1,5 +1,7 @@
 package koma.matrix.media
 
+import koma.InvalidData
+import koma.KomaFailure
 import koma.util.KResult as Result
 import okhttp3.HttpUrl
 
@@ -7,12 +9,12 @@ import okhttp3.HttpUrl
  * convert matrix media url to normal HttpUrl
  * mediaApiPath is like _matrix/media/r0/, "download" needs to be added to get a resource
  */
-fun parseMediaUrl(url: String, server: HttpUrl, mediaApiPath: String): Result<HttpUrl, Exception> {
+fun parseMediaUrl(url: String, server: HttpUrl, mediaApiPath: String): Result<HttpUrl, KomaFailure> {
     if (url.startsWith("mxc://")) {
         return Result.of(parseMxcUrl(url, server, mediaApiPath))
     } else {
         val h = HttpUrl.parse(url)
-        h ?: return Result.error(NullPointerException("Unknown URL $url"))
+        h ?: return Result.failure(InvalidData("Unknown URL $url"))
         return Result.of(h)
     }
 }

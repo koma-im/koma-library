@@ -48,7 +48,7 @@ fun findPublicRooms(term: String, service: MatrixApi) = GlobalScope.produce() {
     while (true) {
         val call_res = service.findPublicRooms(
                 RoomDirectoryQuery(RoomDirectoryFilter(term), since = since)
-                ).awaitMatrix()
+                )
         if (call_res.isSuccess) {
             val roomBatch = call_res.getOrThrow()
             val rooms = roomBatch.chunk

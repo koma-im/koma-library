@@ -1,8 +1,7 @@
 package koma.matrix
 
-import koma.Failure
-import koma.HttpFailure
-import koma.MatrixFailure
+import koma.*
+import koma.KResultF
 import koma.util.KResult as Result
 import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
@@ -33,7 +32,10 @@ import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
+import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
+import koma.util.coroutine.adapter.retrofit.extractMatrix
+import koma.util.flatMap
 import koma.util.getOrThrow
 import koma.util.onFailure
 import mu.KotlinLogging
@@ -220,70 +222,71 @@ class MatrixApi(
         return id.toString()
     }
 
-    fun createRoom(settings: CreateRoomSettings): Call<CreateRoomResult> {
-        return service.createRoom(token, settings)
+    suspend fun createRoom(settings: CreateRoomSettings): KResultF<CreateRoomResult> {
+        return service.createRoom(token, settings).awaitMatrix()
     }
 
-    fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null): Call<Chunked<RawJson<RoomEvent>>> {
-        return service.getMessages(roomId, token, from, direction, to=to)
+    suspend fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null
+    ): KResultF<Chunked<RawJson<RoomEvent>>> {
+        return service.getMessages(roomId, token, from, direction, to=to).awaitMatrix()
     }
 
-    fun joinRoom(roomid: RoomId): Call<JoinRoomResult> {
-        return service.joinRoom(roomid.id, token)
+    suspend fun joinRoom(roomid: RoomId): KResultF<JoinRoomResult> {
+        return service.joinRoom(roomid.id, token).awaitMatrix()
     }
 
-    fun getEventContext(roomid: RoomId, eventId: EventId): Call<ContextResponse> {
-        return service.getEventContext(roomid, eventId,token= token)
+    suspend fun getEventContext(roomid: RoomId, eventId: EventId): KResultF<ContextResponse> {
+        return service.getEventContext(roomid, eventId,token= token).awaitMatrix()
     }
 
-    fun uploadFile(file: File, contentType: MediaType): Call<UploadResponse> {
+    suspend fun uploadFile(file: File, contentType: MediaType): KResultF<UploadResponse> {
         val req = RequestBody.create(contentType, file)
-        return mediaService.uploadMedia(contentType.toString(), token, req)
+        return mediaService.uploadMedia(contentType.toString(), token, req).awaitMatrix()
     }
-    fun uploadByteArray(contentType: MediaType, byteArray: ByteArray): Call<UploadResponse> {
+    suspend fun uploadByteArray(contentType: MediaType, byteArray: ByteArray): KResultF<UploadResponse> {
         val req = RequestBody.create(contentType, byteArray)
-        return mediaService.uploadMedia(contentType.toString(), token, req)
+        return mediaService.uploadMedia(contentType.toString(), token, req).awaitMatrix()
     }
 
-    fun inviteMember(
+    suspend fun inviteMember(
           room: RoomId,
-          memId: UserId): Call<InviteMemResult> =
-            service.inviteUser(room.id, token, InviteUserData(memId))
+          memId: UserId): KResultF<InviteMemResult> =
+            service.inviteUser(room.id, token, InviteUserData(memId)).awaitMatrix()
 
-    fun updateAvatar(user_id: UserId, avatarUrl: AvatarUrl): Call<UpdateAvatarResult>
-            = service.updateAvatar(user_id, token, avatarUrl)
+    suspend fun updateAvatar(user_id: UserId, avatarUrl: AvatarUrl): KResultF<UpdateAvatarResult>
+            = service.updateAvatar(user_id, token, avatarUrl).awaitMatrix()
 
-    fun updateDisplayName(newname: String): Call<EmptyResult>
+    suspend fun updateDisplayName(newname: String): KResultF<EmptyResult>
             = service.updateDisplayName(
             this.userId, token,
-            DisplayName(newname))
+            DisplayName(newname)).awaitMatrix()
 
     suspend fun getDisplayName(user: String): Result<DisplayName, Failure> {
-        return service.getDisplayName(user).awaitMatrix()
+        return service.getDisplayName(user).await().flatMap { it.extractMatrix() }
     }
 
-    fun setRoomIcon(roomId: RoomId, content: RoomAvatarContent):Call<SendResult>
-            = service.sendStateEvent(roomId, RoomEventType.Avatar, token, content)
+    suspend fun setRoomIcon(roomId: RoomId, content: RoomAvatarContent):KResultF<SendResult>
+            = service.sendStateEvent(roomId, RoomEventType.Avatar, token, content).awaitMatrix()
 
-    fun banMember(
+    suspend fun banMember(
             roomid: RoomId,
             memId: UserId
-    ): Call<BanRoomResult> = service.banUser(roomid.id, token, MemberBanishment(memId))
+    ): KResultF<BanRoomResult> = service.banUser(roomid.id, token, MemberBanishment(memId)).awaitMatrix()
 
-    fun leavingRoom(roomid: RoomId): Call<LeaveRoomResult>
-            = service.leaveRoom(roomid, token)
+    suspend fun leavingRoom(roomid: RoomId): KResultF<LeaveRoomResult>
+            = service.leaveRoom(roomid, token).awaitMatrix()
 
-    fun putRoomAlias(roomid: RoomId, alias: String): Call<EmptyResult>
-            = service.putRoomAlias(alias, token, RoomInfo(roomid))
+    suspend fun putRoomAlias(roomid: RoomId, alias: String): KResultF<EmptyResult>
+            = service.putRoomAlias(alias, token, RoomInfo(roomid)).awaitMatrix()
 
-    fun deleteRoomAlias(alias: String): Call<EmptyResult>
-            = service.deleteRoomAlias(alias, token)
+    suspend fun deleteRoomAlias(alias: String): KResultF<EmptyResult>
+            = service.deleteRoomAlias(alias, token).awaitMatrix()
 
-    fun setRoomCanonicalAlias(roomid: RoomId, canonicalAlias: RoomCanonAliasContent)
-            = service.sendStateEvent(roomid, RoomEventType.CanonAlias, token, canonicalAlias)
+    suspend fun setRoomCanonicalAlias(roomid: RoomId, canonicalAlias: RoomCanonAliasContent)
+            = service.sendStateEvent(roomid, RoomEventType.CanonAlias, token, canonicalAlias).awaitMatrix()
 
-    fun setRoomName(roomid: RoomId, name: RoomNameContent)
-            = service.sendStateEvent(roomid, RoomEventType.Name, token, name)
+    suspend fun setRoomName(roomid: RoomId, name: RoomNameContent)
+            = service.sendStateEvent(roomid, RoomEventType.Name, token, name).awaitMatrix()
 
     suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Failure> {
         val r = service.getStateEvent(roomId, RoomEventType.Name, token).awaitMatrix()
@@ -315,9 +318,9 @@ class MatrixApi(
             return Result.success(Optional.ofNullable(r.getOrNull()!!.get("url") as String))
         }
     }
-    fun resolveRoomAlias(roomAlias: String): Call<ResolveRoomAliasResult> {
+    suspend fun resolveRoomAlias(roomAlias: String): KResultF<ResolveRoomAliasResult> {
         val call: Call<ResolveRoomAliasResult> = service.resolveRoomAlias(roomAlias)
-        return call
+        return call.awaitMatrix()
     }
 
     suspend fun sendMessage(roomId: RoomId, message: M_Message
@@ -330,14 +333,14 @@ class MatrixApi(
         return res
     }
 
-    fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query)
+    suspend fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query).awaitMatrix()
 
     suspend fun asyncEvents(from: String?): Result<SyncResponse, Failure> {
         val syRes = longPollService.getEvents(from, token).awaitMatrix()
         return syRes
     }
 
-    fun getMediaUrl(addr: String): Result<HttpUrl, Exception> {
+    fun getMediaUrl(addr: String): Result<HttpUrl, KomaFailure> {
         return parseMediaUrl(addr, server, mediaPath)
     }
 
@@ -378,11 +381,11 @@ data class UserPassword(
 )
 interface MatrixLoginApi {
     @POST("_matrix/client/r0/login")
-    fun login(@Body userpass: UserPassword): Call<AuthedUser>
+    suspend fun login(@Body userpass: UserPassword): Call<AuthedUser>
 }
 
-fun login(userpass: UserPassword, server: String, http: AppHttpClient):
-        Call<AuthedUser> {
+suspend fun login(userpass: UserPassword, server: String, http: AppHttpClient):
+        KResultF<AuthedUser> {
     val moshi = MoshiInstance.moshi
     val client = http.client
     val serverUrl = if (server.endsWith('/')) server else "$server/"
@@ -393,5 +396,5 @@ fun login(userpass: UserPassword, server: String, http: AppHttpClient):
             .build()
     val service = retrofit.create(MatrixLoginApi::class.java)
     val auth_call: Call<AuthedUser> = service.login(userpass)
-    return auth_call
+    return auth_call.awaitMatrix()
 }
