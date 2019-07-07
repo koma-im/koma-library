@@ -7,6 +7,7 @@ import koma.network.matrix.media.mxcToHttp
 import koma.util.coroutine.adapter.okhttp.await
 import koma.util.coroutine.adapter.okhttp.extract
 import koma.util.flatMap
+import koma.util.fold
 import koma.util.getOr
 import koma.util.map
 import okhttp3.*
@@ -103,4 +104,8 @@ sealed class MHUrl {
             }
         }
     }
+}
+
+fun String.parseMxc(): MHUrl? {
+    return MHUrl.fromStr(this).fold({it}, {null})
 }
