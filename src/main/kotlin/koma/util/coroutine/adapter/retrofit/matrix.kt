@@ -1,5 +1,6 @@
 package koma.util.coroutine.adapter.retrofit
 
+import com.squareup.moshi.JsonEncodingException
 import koma.*
 import koma.matrix.json.MoshiInstance
 import koma.util.flatMap
@@ -34,7 +35,12 @@ internal fun<T> Response<T>.extractMatrix(): Result<T, KomaFailure> {
 
 @Suppress("UNCHECKED_CAST")
 private fun tryGetMatrixFailure(s: String, code: Int, message: String): MatrixFailure? {
-    val m = MoshiInstance.mapAdapter.fromJson(s) ?: return null
+    val m = try {
+        MoshiInstance.mapAdapter.fromJson(s) ?: return null
+    } catch (e: Throwable) {
+        logger.warn { "Is not json, $s. Exception: $e" }
+        return null
+    }
     val j: MutableMap<String, Any> = m as MutableMap<String, Any>
     val c = j.remove("errcode")?.toString() ?: return null
     val e = j.remove("error")?.toString() ?: return null
