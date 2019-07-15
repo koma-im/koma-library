@@ -1,11 +1,13 @@
 package koma.util
 
+import java.lang.Exception
+
 @Suppress("NON_PUBLIC_PRIMARY_CONSTRUCTOR_OF_INLINE_CLASS", "NOTHING_TO_INLINE", "DEPRECATION")
 inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
         @PublishedApi
         @Deprecated("internal value")
         internal val _value: Any?
-){
+) {
     val isSuccess: Boolean get() = _value !is _Failure<*>
     val isFailure: Boolean get() = _value is _Failure<*>
 
@@ -16,12 +18,15 @@ inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
      * This function is shorthand for `getOrElse { null }` (see [getOrElse]) or
      * `fold(onSuccess = { it }, onFailure = { null })` (see [fold]).
      */
-    @Suppress("UNCHECKED_CAST")
-    inline fun getOrNull(): T? =
-            when {
-                isFailure -> null
-                else -> _value as T
+    inline fun getOrNull(): T?  {
+        return when {
+            isFailure -> null
+            else -> {
+                @Suppress("UNCHECKED_CAST")
+                _value as T
             }
+        }
+    }
 
     /**
      * Returns the encapsulated exception if this instance represents [failure][isFailure] or `null`
@@ -29,10 +34,15 @@ inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
      *
      * This function is shorthand for `fold(onSuccess = { null }, onFailure = { it })` (see [fold]).
      */
-    @Suppress("UNCHECKED_CAST", "NOTHING_TO_INLINE")
+    @Suppress("NOTHING_TO_INLINE")
     fun failureOrNull(): E? {
-        val e = when (_value) {
-            is _Failure<*> -> _value.exception as E
+        val e: E? = when (_value) {
+            is _Failure<*> -> {
+                @Suppress("UNCHECKED_CAST")
+                val v = _value as _Failure<E>
+                val f: E = v.getFailure()
+                f
+            }
             else -> null
         }
         return e
@@ -45,7 +55,7 @@ inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
      */
     override fun toString(): String =
             when (_value) {
-                is _Failure<*> -> _value.toString() // "Failure($exception)"
+                is _Failure<*> -> "Failure(${failureOrNull()})"
                 else -> "Success($_value)"
             }
 
@@ -59,22 +69,35 @@ inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
          */
         @Suppress("NOTHING_TO_INLINE")
         inline fun <T, E: Any> success(value: T): KResult<T, E> = KResult(value)
+        @Suppress("use success")
         inline fun <T, E: Any> of(value: T): KResult<T, E> = KResult(value)
 
         /**
          * Returns an instance that encapsulates the given [exception] as failure.
          */
         inline fun <T, E: Any> failure(e: E): KResult<T, E> = KResult(createFailure(e))
+        @Suppress("use failure")
         inline fun <T, E: Any> error(e: E): KResult<T, E> = KResult(createFailure(e))
     }
 
-    internal class _Failure<E>(
-            @JvmField
+    internal class _Failure<E: Any>(
             val exception: E
     ) {
+        init {
+            if (exception is _Failure<*>) {
+                System.err.println("Invalid _Failure")
+                val e = Exception("_Failure can't nested: $exception")
+                e.printStackTrace()
+                throw e
+            }
+        }
+        fun getFailure(): E {
+            val e = exception
+            return e
+        }
         override fun equals(other: Any?): Boolean = other is _Failure<*> && exception == other.exception
         override fun hashCode(): Int = exception.hashCode()
-        override fun toString(): String = "Failure($exception)"
+        override fun toString(): String = "Internal_Failure($exception)"
     }
 }
 
@@ -83,8 +106,9 @@ inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
  * make sure that this class is not exposed in ABI.
  */
 @PublishedApi
-internal fun<E> createFailure(exception: E): Any =
-        KResult._Failure(exception)
+internal fun<E: Any> createFailure(exception: E): Any {
+    return KResult._Failure(exception)
+}
 
 /**
  * Returns the encapsulated value if this instance represents [success][KResult.isSuccess] or the
@@ -94,7 +118,7 @@ internal fun<E> createFailure(exception: E): Any =
  *
  * This function is shorthand for `fold(onSuccess = { it }, onFailure = onFailure)` (see [fold]).
  */
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST")
+@Suppress("NOTHING_TO_INLINE")
 inline infix fun <R, T : R, E: Any> KResult<T, E>.getOr(onFailure: (E) -> R): R {
     return if (isFailure) {
         onFailure(failureOrThrow())
@@ -118,23 +142,26 @@ inline infix fun <R: Any, T, E: R> KResult<T, E>.getFailureOr(onSuccess: (T) -> 
  *
  * This function is shorthand for `getOrElse { defaultValue }` (see [getOrElse]).
  */
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATION")
+@Suppress("NOTHING_TO_INLINE")
 inline fun <R, T : R, E: Any> KResult<T, E>.getOrDefault(defaultValue: R): R {
     if (isFailure) return defaultValue
+    @Suppress("UNCHECKED_CAST", "DEPRECATION")
     return _value as T
 }
 
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATION")
+@Suppress("NOTHING_TO_INLINE")
 inline fun <T, E: Any> KResult<T, E>.getOrThrow(): T {
     if (isFailure) {
         val e = failureOrNull()
         if (e is Throwable) throw e
         throw Throwable("KResult is Failure $e")
     }
-    return _value as T
+    @Suppress("UNCHECKED_CAST", "DEPRECATION")
+    val r = _value as T
+    return r
 }
 
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATION")
+@Suppress("NOTHING_TO_INLINE")
 inline fun <T, E: Any> KResult<T, E>.failureOrThrow(): E {
     failureOrNull()?.let {
         return it
@@ -148,13 +175,16 @@ inline fun <T, E: Any> KResult<T, E>.failureOrThrow(): E {
  *
  * Note, that an exception thrown by [onSuccess] or by [onFailure] function is rethrown by this function.
  */
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATION")
+@Suppress("NOTHING_TO_INLINE")
 inline fun <R, T, E: Any> KResult<T, E>.fold(
         onSuccess: (T) -> R,
         onFailure: (E) -> R
 ): R {
     return when (val exception = failureOrNull()) {
-        null -> onSuccess(_value as T)
+        null -> {
+            @Suppress("UNCHECKED_CAST", "DEPRECATION")
+            onSuccess(_value as T)
+        }
         else -> onFailure(exception)
     }
 }
@@ -168,26 +198,35 @@ inline fun <R, T, E: Any> KResult<T, E>.fold(
  *
  * Note, that an exception thrown by [transform] function is rethrown by this function.
  */
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATION")
+@Suppress("NOTHING_TO_INLINE")
 inline fun <R, T, E: Any> KResult<T, E>.map(transform: (T) -> R): KResult<R, E> {
     return when {
-        isSuccess -> KResult.success(transform(_value as T))
-        else -> KResult.failure(_value as E)
+        isSuccess -> {
+            @Suppress("UNCHECKED_CAST", "DEPRECATION")
+            KResult.success(transform(_value as T))
+        }
+        else -> KResult.failure(failureOrThrow())
     }
 }
 
-inline fun <R: Any, T, E: Any> KResult<T, E>.mapErr(transform: (E) -> R): KResult<T, R> {
+inline fun <R: Any, T, E: Any> KResult<T, E>.mapFailure(transform: (E) -> R): KResult<T, R> {
     return when {
         isFailure -> KResult.failure(transform(failureOrThrow()))
         else -> KResult.success(getOrThrow())
     }
 }
 
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATION")
+@Suppress("NOTHING_TO_INLINE")
 inline fun <R, T, E: Any> KResult<T, E>.flatMap(transform: (value: T) -> KResult<R, E>): KResult<R, E> {
     return when {
-        isSuccess -> transform(_value as T)
-        else -> KResult(_value)
+        isSuccess -> {
+            @Suppress("UNCHECKED_CAST", "DEPRECATION")
+            transform(_value as T)
+        }
+        else -> {
+            @Suppress("DEPRECATION")
+            KResult(_value)
+        }
     }
 }
 
@@ -220,8 +259,11 @@ inline fun <T, E: Any> KResult<T, E>.onFailure(action: (exception: E) -> Unit): 
  * Performs the given [action] on encapsulated value if this instance represents [success][KResult.isSuccess].
  * Returns the original `KResult` unchanged.
  */
-@Suppress("NOTHING_TO_INLINE", "UNCHECKED_CAST", "DEPRECATION")
+@Suppress("NOTHING_TO_INLINE")
 inline fun <T, E: Any> KResult<T, E>.onSuccess(action: (value: T) -> Unit): KResult<T, E> {
-    if (isSuccess) action(_value as T)
+    if (isSuccess) {
+        @Suppress("UNCHECKED_CAST", "DEPRECATION")
+        action(_value as T)
+    }
     return this
 }
