@@ -10,7 +10,9 @@ open class Failure(val message: String)
 
 internal typealias KResultF<T> = KResult<T, KomaFailure>
 
-sealed class KomaFailure(message: String): Failure(message)
+sealed class KomaFailure(message: String): Failure(message) {
+    override fun toString() = "KomaFailure($message)"
+}
 
 class IOFailure(val throwable: Throwable): KomaFailure("IOError $throwable") {
     override fun toString(): String {
@@ -28,6 +30,7 @@ open class HttpFailure(val http_code: Int,
                      val http_message: String
 ): KomaFailure("HTTP $http_code $http_message") {
     override fun toString(): String {
+        Result
         return "HTTP $http_code $http_message"
     }
 }

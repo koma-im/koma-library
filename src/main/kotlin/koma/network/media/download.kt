@@ -2,6 +2,7 @@ package koma.network.media
 
 import koma.Failure
 import koma.Koma
+import koma.KomaFailure
 import koma.OtherFailure
 import koma.network.matrix.media.mxcToHttp
 import koma.util.coroutine.adapter.okhttp.await
@@ -20,7 +21,7 @@ suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Failure> {
     return httpres.extract()
 }
 
-suspend fun Koma.downloadMedia(mhUrl: MHUrl, server: HttpUrl): Result<ByteArray, Failure> {
+suspend fun Koma.downloadMedia(mhUrl: MHUrl, server: HttpUrl): Result<ByteArray, KomaFailure> {
     val req = when (mhUrl) {
         is MHUrl.Mxc -> {
             val u = mhUrl.toHttpUrl(server)?:return Result.failure(OtherFailure("url $mhUrl"))
@@ -46,7 +47,7 @@ suspend fun Koma.downloadMedia(mhUrl: MHUrl, server: HttpUrl): Result<ByteArray,
     return bs
 }
 
-private suspend fun Koma.getHttpBytes(req: Request): Result<ByteArray, Failure> {
+private suspend fun Koma.getHttpBytes(req: Request): Result<ByteArray, KomaFailure> {
     val hr = this.http.client.newCall(req).await()
     val body = hr.flatMap { it.extract() }
     val v = body.map { it.bytes() }

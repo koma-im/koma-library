@@ -1,9 +1,6 @@
 package koma.util.coroutine.adapter.okhttp
 
-import koma.Failure
-import koma.HttpFailure
-import koma.IOFailure
-import koma.InvalidData
+import koma.*
 import koma.util.KResult as Result
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -18,7 +15,7 @@ import kotlin.coroutines.resume
 /**
  * Suspend extension that allows suspend [Call] inside coroutine.
  */
-suspend fun Call.await(): Result<Response, Failure> {
+suspend fun Call.await(): Result<Response, KomaFailure> {
     return suspendCancellableCoroutine { continuation ->
         enqueue(object : Callback {
             override fun onResponse(call: Call?, response: Response) {
@@ -36,7 +33,7 @@ suspend fun Call.await(): Result<Response, Failure> {
     }
 }
 
-fun Response.extract(): Result<ResponseBody, Failure> {
+fun Response.extract(): Result<ResponseBody, KomaFailure> {
     return if (this.isSuccessful) {
         val body = this.body()
         if (body == null) Result.failure(InvalidData("Response body is null"))
