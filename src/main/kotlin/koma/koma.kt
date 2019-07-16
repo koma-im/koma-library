@@ -35,8 +35,11 @@ class Koma(
                 proxy = proxy)
     }
 
-    fun createApi(token: String, userId: UserId, server: HttpUrl): MatrixApi {
-        return MatrixApi(token, userId, server, http = http)
+    /**
+     * instance of a matrix server
+     */
+    fun server(server: HttpUrl): Server {
+        return Server(server, this)
     }
 }
 

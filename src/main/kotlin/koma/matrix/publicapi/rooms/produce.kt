@@ -1,5 +1,6 @@
 package koma.matrix.publicapi.rooms
 
+import koma.Server
 import koma.matrix.DiscoveredRoom
 import koma.matrix.MatrixApi
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
@@ -12,12 +13,11 @@ import kotlinx.coroutines.delay
 import retrofit2.HttpException
 
 @ExperimentalCoroutinesApi
-fun getPublicRooms(client: MatrixApi) = GlobalScope.produce<DiscoveredRoom>(capacity = 1) {
-    val service = client.service
+fun getPublicRooms(server: Server) = GlobalScope.produce<DiscoveredRoom>(capacity = 1) {
     var since: String? = null
     var fetched = 0
     while (true) {
-        val call_res = service.publicRooms(since).awaitMatrix()
+        val call_res = server.listPublicRooms(since)
         when {
             call_res.isSuccess -> {
                 val roomBatch = call_res.getOrThrow()

@@ -14,7 +14,6 @@ import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.event.room_message.state.RoomNameContent
 import koma.matrix.json.MoshiInstance
 import koma.matrix.json.RawJson
-import koma.matrix.media.parseMediaUrl
 import koma.matrix.pagination.FetchDirection
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.publicapi.rooms.RoomDirectoryQuery
@@ -22,7 +21,6 @@ import koma.matrix.room.admin.BanRoomResult
 import koma.matrix.room.admin.CreateRoomResult
 import koma.matrix.room.admin.CreateRoomSettings
 import koma.matrix.room.admin.MemberBanishment
-import koma.matrix.room.naming.ResolveRoomAliasResult
 import koma.matrix.room.naming.RoomId
 import koma.matrix.room.participation.LeaveRoomResult
 import koma.matrix.room.participation.invite.InviteMemResult
@@ -32,10 +30,7 @@ import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
-import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma.util.coroutine.adapter.retrofit.extractMatrix
-import koma.util.flatMap
 import koma.util.getOrThrow
 import koma.util.onFailure
 import mu.KotlinLogging
@@ -79,9 +74,6 @@ interface MatrixAccessApiDef {
                   @Query("access_token") token: String)
             : Call<LeaveRoomResult>
 
-    @GET("directory/room/{roomAlias}")
-    fun resolveRoomAlias(@Path("roomAlias") roomAlias: String): Call<ResolveRoomAliasResult>
-
     @PUT("directory/room/{roomAlias}")
     fun putRoomAlias(@Path("roomAlias") roomAlias: String,
                      @Query("access_token") token: String,
@@ -92,18 +84,11 @@ interface MatrixAccessApiDef {
                         @Query("access_token") token: String
     ): Call<EmptyResult>
 
-    @GET("publicRooms")
-    fun publicRooms(@Query("since") since: String? = null,
-                    @Query("limit") limit: Int = 20
-    ): Call<RoomBatch<DiscoveredRoom>>
-
     @POST("publicRooms")
     fun findPublicRooms(
             @Query("access_token") token: String,
             @Body query: RoomDirectoryQuery
     ): Call<RoomBatch<DiscoveredRoom>>
-
-
 
     @GET("rooms/{roomId}/messages")
     fun getMessages(
@@ -171,17 +156,11 @@ interface MatrixAccessApiDef {
                      @Query("access_token") token: String,
                      @Body avatarUrl: AvatarUrl): Call<UpdateAvatarResult>
 
-    @GET("profile/{userId}/avatar_url")
-    fun getAvatar(@Path("userId") user_id: UserId): Call<AvatarUrl>
 
     @PUT("profile/{userId}/displayname")
     fun updateDisplayName(@Path("userId") user_id: UserId,
                      @Query("access_token") token: String,
                      @Body body: DisplayName): Call<EmptyResult>
-
-    @GET("profile/{userId}/displayname")
-    fun getDisplayName(@Path("userId") user_id: String
-    ): Call<DisplayName>
 }
 
 /**
@@ -198,16 +177,7 @@ internal interface MatrixMediaApiDef {
 class MatrixApi(
         private val token: String,
         val userId: UserId,
-        /***
-         * homeserver base address such as https://matrix.org
-         */
-        val server: HttpUrl,
-        apiPath: String = "_matrix/client/r0/",
-        private val mediaPath: String = "_matrix/media/r0/",
-        /**
-         * share OkHttpClient as much as possible to conserve resources
-         */
-        http: AppHttpClient) {
+        val server: Server) {
 
     val service: MatrixAccessApiDef
     private val longPollService: MatrixAccessApiDef
@@ -260,10 +230,6 @@ class MatrixApi(
             = service.updateDisplayName(
             this.userId, token,
             DisplayName(newname)).awaitMatrix()
-
-    suspend fun getDisplayName(user: String): Result<DisplayName, Failure> {
-        return service.getDisplayName(user).await().flatMap { it.extractMatrix() }
-    }
 
     suspend fun setRoomIcon(roomId: RoomId, content: RoomAvatarContent):KResultF<SendResult>
             = service.sendStateEvent(roomId, RoomEventType.Avatar, token, content).awaitMatrix()
@@ -318,10 +284,6 @@ class MatrixApi(
             return Result.success(Optional.ofNullable(r.getOrNull()!!.get("url") as String))
         }
     }
-    suspend fun resolveRoomAlias(roomAlias: String): KResultF<ResolveRoomAliasResult> {
-        val call: Call<ResolveRoomAliasResult> = service.resolveRoomAlias(roomAlias)
-        return call.awaitMatrix()
-    }
 
     suspend fun sendMessage(roomId: RoomId, message: M_Message
     ): Result<SendResult, Failure> {
@@ -340,17 +302,12 @@ class MatrixApi(
         return syRes
     }
 
-    fun getMediaUrl(addr: String): Result<HttpUrl, KomaFailure> {
-        return parseMediaUrl(addr, server, mediaPath)
-    }
-
     init {
         val moshi = MoshiInstance.moshi
-        val apiURL = server.newBuilder().addPathSegments(apiPath).build()
         val rb = Retrofit.Builder()
-                .baseUrl(apiURL)
+                .baseUrl(server.apiURL)
                 .addConverterFactory(MoshiConverterFactory.create(moshi))
-
+        val http = server.km.http
         service = rb.client(http.client).build()
                 .create(MatrixAccessApiDef::class.java)
 
@@ -358,9 +315,8 @@ class MatrixApi(
         val longPollClient = http.builder.readTimeout(longPollTimeout.toLong() + 10, TimeUnit.SECONDS).build()
         longPollService = rb.client(longPollClient).build().create(MatrixAccessApiDef::class.java)
 
-        val mu = server.newBuilder().addPathSegments(mediaPath).build()
         mediaService = Retrofit.Builder()
-                .baseUrl(mu)
+                .baseUrl(server.mediaUrl)
                 .addConverterFactory(MoshiConverterFactory.create())
                 .client(http.client)
                 .build().create(MatrixMediaApiDef::class.java)
