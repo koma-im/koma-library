@@ -3,17 +3,16 @@ package koma.matrix.publicapi.rooms
 import koma.Server
 import koma.matrix.DiscoveredRoom
 import koma.matrix.MatrixApi
-import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import koma.util.failureOrThrow
 import koma.util.getOrThrow
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.delay
 import retrofit2.HttpException
 
 @ExperimentalCoroutinesApi
-fun getPublicRooms(server: Server) = GlobalScope.produce<DiscoveredRoom>(capacity = 1) {
+fun CoroutineScope.getPublicRooms(server: Server) = produce<DiscoveredRoom>(capacity = 1) {
     var since: String? = null
     var fetched = 0
     while (true) {
@@ -42,7 +41,7 @@ fun getPublicRooms(server: Server) = GlobalScope.produce<DiscoveredRoom>(capacit
 }
 
 @ExperimentalCoroutinesApi
-fun findPublicRooms(term: String, service: MatrixApi) = GlobalScope.produce() {
+fun CoroutineScope.findPublicRooms(term: String, service: MatrixApi) = produce() {
     var since: String? = null
     var fetched = 0
     while (true) {

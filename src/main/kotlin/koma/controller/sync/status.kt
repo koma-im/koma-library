@@ -5,8 +5,7 @@ import koma.matrix.sync.SyncResponse
 import kotlinx.coroutines.CompletableDeferred
 import koma.util.KResult as Result
 
-sealed class SyncStatus {
+internal sealed class SyncStatus {
     class Resync(): SyncStatus()
-    class Shutdown(val done: CompletableDeferred<Boolean>): SyncStatus()
     class Response(val response: Result<SyncResponse, Failure>): SyncStatus()
 }
