@@ -1,16 +1,17 @@
 package koma.network.media
 
-import koma.*
-import koma.network.matrix.media.mxcToHttp
+import koma.Failure
+import koma.Koma
 import koma.util.coroutine.adapter.okhttp.await
 import koma.util.coroutine.adapter.okhttp.extract
-import koma.util.flatMap
-import koma.util.fold
 import koma.util.getOr
-import koma.util.map
-import okhttp3.*
+import mu.KotlinLogging
+import okhttp3.HttpUrl
+import okhttp3.Request
+import okhttp3.ResponseBody
 import koma.util.KResult as Result
-import java.util.concurrent.TimeUnit
+
+private val logger = KotlinLogging.logger {}
 
 suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Failure> {
     val req = Request.Builder().url(url).build()
@@ -21,7 +22,7 @@ suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Failure> {
 suspend fun Server.downloadMedia(mhUrl: MHUrl): Result<ByteArray, KomaFailure> {
     val req = when (mhUrl) {
         is MHUrl.Mxc -> {
-            val u = mhUrl.toHttpUrl(this.url)?:return Result.failure(OtherFailure("url $mhUrl"))
+            val u = this.mxcToHttp(mhUrl)
             Request.Builder().url(u)
                     .cacheControl(CacheControl
                             .Builder()
@@ -55,55 +56,31 @@ private suspend fun Koma.getHttpBytes(req: Request): Result<ByteArray, KomaFailu
  * matrix or http media url
  */
 sealed class MHUrl {
-    class Mxc(val mxc: String): MHUrl()
-    class Http(val http: HttpUrl,
+    data class Mxc(val server: String, val media: String): MHUrl()
+    data class Http(val http: HttpUrl,
                val maxStale: Int? = null): MHUrl()
-
-    fun toHttpUrl(server: HttpUrl): HttpUrl? {
-        return when (this) {
-            is Http -> this.http
-            is Mxc -> mxcToHttp(this.mxc, server)
-        }
-    }
 
     override fun toString(): String {
         return when (this) {
             is Http -> this.http.toString()
-            is Mxc -> this.mxc
-        }
-    }
-
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        return (this is Mxc && other is Mxc && this.mxc == other.mxc)
-        || (this is Http && other is Http && this.http == other.http && this.maxStale == other.maxStale)
-    }
-
-    override fun hashCode(): Int {
-        return when (this ) {
-            is Mxc -> this.mxc.hashCode()
-            is Http -> this.http.hashCode() * 31 + (this.maxStale ?: 0)
-        }
-    }
-
-
-
-    companion object {
-        fun fromStr(url: String): Result<MHUrl, Exception>{
-            if (url.startsWith("mxc://")) {
-                return Result.of(Mxc(url))
-            } else {
-                val h = HttpUrl.parse(url)
-                h ?: return Result.error(NullPointerException("Unknown URL $url"))
-                return Result.of(Http(h))
-            }
+            is Mxc -> "mxc://$server/$media"
         }
     }
 }
 
+private const val prefix="mxc://"
+
 fun String.parseMxc(): MHUrl? {
-    return MHUrl.fromStr(this).fold({it}, {null})
+    if (indexOf(prefix)== 0) {
+        val sep0 = indexOf('/', prefix.length)
+        val end = indexOf('/', sep0+1).let {
+            if (it > 0) it else length
+        }
+        val  server = substring(prefix.length, sep0)
+        val  m = substring(sep0+1, end)
+        return MHUrl.Mxc(server,m)
+    } else {
+        val h =HttpUrl.parse(this)?:return null
+        return MHUrl.Http(h)
+    }
 }

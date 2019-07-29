@@ -4,13 +4,12 @@ import koma.matrix.DiscoveredRoom
 import koma.matrix.MatrixApi
 import koma.matrix.UserId
 import koma.matrix.json.MoshiInstance
-import koma.matrix.media.parseMediaUrl
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.room.naming.ResolveRoomAliasResult
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
+import koma.network.media.MHUrl
 import koma.util.KResult
-import koma.util.KResult as Result
 import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import koma.util.coroutine.adapter.retrofit.extractMatrix
@@ -68,8 +67,17 @@ class Server(
         return service.publicRooms(since).awaitMatrix()
     }
 
-    fun getMediaUrl(addr: String): Result<HttpUrl, KomaFailure> {
-        return parseMediaUrl(addr, url, mediaPath)
+    fun mxcToHttp(mxc: MHUrl): HttpUrl {
+        when (mxc){
+            is MHUrl.Http->return mxc.http
+            is MHUrl.Mxc->{
+                return mediaUrl.newBuilder()
+                        .addPathSegment("download")
+                        .addPathSegment(mxc.server)
+                        .addPathSegment(mxc.media)
+                        .build()
+            }
+        }
     }
 }
 
