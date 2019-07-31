@@ -29,11 +29,12 @@ class Server(
         val url: HttpUrl,
         val km: Koma,
         apiPath: String = "_matrix/client/r0/",
-        private val mediaPath: String = "_matrix/media/r0/"
+        mediaPath: String = "_matrix/media/r0/"
 ) {
     val apiURL = url.newBuilder().addPathSegments(apiPath).build()
     val mediaUrl = url.newBuilder().addPathSegments(mediaPath).build()
     val service: MatrixPublicApi
+    private val downloader = Downloader(km.http.client)
     init {
         val moshi = MoshiInstance.moshi
         val rb = Retrofit.Builder()
@@ -79,7 +80,18 @@ class Server(
             }
         }
     }
+
+    suspend fun downloadMedia(mhUrl: MHUrl): KResult<ByteArray, KomaFailure> {
+        when (mhUrl) {
+            is MHUrl.Mxc -> {
+                val u = mxcToHttp(mhUrl)
+                return downloader.downloadMedia(u, Integer.MAX_VALUE)
+            }
+            is MHUrl.Http -> return km.downloadMedia(mhUrl.http)
+        }
+    }
 }
+
 
 /**
  * no access_token needed

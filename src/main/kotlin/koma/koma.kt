@@ -4,6 +4,7 @@ import koma.matrix.MatrixApi
 import koma.matrix.UserId
 import koma.network.client.okhttp.AppHttpClient
 import koma.storage.config.getHttpCacheDir
+import koma.util.KResult
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -25,6 +26,7 @@ class Koma(
         addTrust: InputStream? = null
 ) {
     val http: AppHttpClient
+
     init {
         val cache = path?.let { getHttpCacheDir(it) }
         logger.debug { "http cache directory $cache" }
@@ -35,6 +37,11 @@ class Koma(
                 proxy = proxy)
     }
 
+    private val downloader = Downloader(http.client)
+
+    suspend fun downloadMedia(url: HttpUrl, maxStale: Int? = null): KResult<ByteArray, KomaFailure> {
+        return downloader.downloadMedia(url, maxStale)
+    }
     /**
      * instance of a matrix server
      */

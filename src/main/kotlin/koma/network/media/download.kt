@@ -19,46 +19,12 @@ suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Failure> {
     return httpres.extract()
 }
 
-suspend fun Server.downloadMedia(mhUrl: MHUrl): Result<ByteArray, KomaFailure> {
-    val req = when (mhUrl) {
-        is MHUrl.Mxc -> {
-            val u = this.mxcToHttp(mhUrl)
-            Request.Builder().url(u)
-                    .cacheControl(CacheControl
-                            .Builder()
-                            .maxStale(Integer.MAX_VALUE, TimeUnit.SECONDS)
-                            .build())
-                    .build()
-        }
-        is MHUrl.Http -> {
-            var r = Request.Builder().url(mhUrl.http)
-            if (mhUrl.maxStale != null) {
-                r = r.cacheControl(CacheControl
-                        .Builder()
-                        .maxStale(mhUrl.maxStale, TimeUnit.SECONDS)
-                        .build())
-            }
-            r.build()
-        }
-    }
-    val bs = this.km.getHttpBytes(req)
-    return bs
-}
-
-private suspend fun Koma.getHttpBytes(req: Request): Result<ByteArray, KomaFailure> {
-    val hr = this.http.client.newCall(req).await()
-    val body = hr.flatMap { it.extract() }
-    val v = body.map { it.bytes() }
-    return v
-}
-
 /**
  * matrix or http media url
  */
 sealed class MHUrl {
     data class Mxc(val server: String, val media: String): MHUrl()
-    data class Http(val http: HttpUrl,
-               val maxStale: Int? = null): MHUrl()
+    data class Http(val http: HttpUrl): MHUrl()
 
     override fun toString(): String {
         return when (this) {
