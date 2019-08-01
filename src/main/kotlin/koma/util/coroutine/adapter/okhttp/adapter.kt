@@ -17,6 +17,9 @@ import kotlin.coroutines.resume
  */
 suspend fun Call.await(): Result<Response, KomaFailure> {
     return suspendCancellableCoroutine { continuation ->
+        continuation.invokeOnCancellation {
+            cancel()
+        }
         enqueue(object : Callback {
             override fun onResponse(call: Call?, response: Response) {
                 continuation.resume(Result.of (response))
@@ -28,8 +31,6 @@ suspend fun Call.await(): Result<Response, KomaFailure> {
                 continuation.resume(Result.failure(IOFailure(t)))
             }
         })
-
-        registerOnCompletion(continuation)
     }
 }
 
@@ -41,16 +42,5 @@ fun Response.extract(): Result<ResponseBody, KomaFailure> {
     } else {
         body()?.close()
         Result.failure(HttpFailure(this.code(), this.message()))
-    }
-}
-
-private fun Call.registerOnCompletion(continuation: CancellableContinuation<*>) {
-    continuation.invokeOnCancellation {
-        if (continuation.isCancelled)
-            try {
-                cancel()
-            } catch (ex: Throwable) {
-                //Ignore cancel exception
-            }
     }
 }
