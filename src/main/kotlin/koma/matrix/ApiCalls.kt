@@ -31,6 +31,7 @@ import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
+import koma.util.failureOrThrow
 import koma.util.getOrThrow
 import koma.util.onFailure
 import mu.KotlinLogging
@@ -256,7 +257,8 @@ class MatrixApi(
 
     suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Failure> {
         val r = service.getStateEvent(roomId, RoomEventType.Name, token).awaitMatrix()
-        r.onFailure { e ->
+        if (r.isFailure) {
+            val e = r.failureOrThrow()
             return if (e is HttpFailure && e.http_code == 404) {
                 Result.success(Optional.empty())
             }else if (e is MatrixFailure && e.errcode == "M_NOT_FOUND") {
