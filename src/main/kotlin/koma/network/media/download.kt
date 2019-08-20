@@ -23,14 +23,11 @@ suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Failure> {
  * matrix or http media url
  */
 sealed class MHUrl {
-    data class Mxc(val server: String, val media: String): MHUrl()
-    data class Http(val http: HttpUrl): MHUrl()
-
-    override fun toString(): String {
-        return when (this) {
-            is Http -> this.http.toString()
-            is Mxc -> "mxc://$server/$media"
-        }
+    data class Mxc(val server: String, val media: String): MHUrl() {
+        override fun toString() = "mxc://$server/$media"
+    }
+    data class Http(val http: HttpUrl): MHUrl() {
+        override fun toString() = this.http.toString()
     }
 }
 

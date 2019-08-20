@@ -45,7 +45,7 @@ dependencies {
 }
 
 group = "io.github.koma-im"
-version = "0.8.8"
+version = "0.8.9"
 description = "koma-library"
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {

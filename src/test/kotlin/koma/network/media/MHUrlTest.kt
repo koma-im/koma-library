@@ -17,4 +17,14 @@ internal class MHUrlTest {
         assertEquals(u3.hashCode(),MHUrl.Http(HttpUrl.parse("http://matrix.org")!!).hashCode())
         assertNotEquals(u2, u3)
     }
+
+    @Test
+    fun testToString() {
+        val u1 = MHUrl.Mxc("aHK", "b")
+        assertEquals(u1.toString(), "mxc://aHK/b")
+        val u2 = MHUrl.Mxc("c", "bd")
+        assertEquals("mxc://c/bd", u2.toString())
+        val u3 = MHUrl.Http(HttpUrl.parse("http://matrix.org")!!)
+        assertEquals("http://matrix.org/", u3.toString())
+    }
 }
