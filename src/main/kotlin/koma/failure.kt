@@ -2,9 +2,6 @@ package koma
 
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
-import okhttp3.Response
-
-
 
 open class Failure(val message: String)
 

@@ -30,7 +30,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.41")
     compileOnly("org.jetbrains.kotlin:kotlin-reflect:1.3.41")
     compile("com.squareup.moshi:moshi:1.8.0")
-    compile("com.squareup.retrofit2:retrofit:2.6.0")
+    compile("com.squareup.retrofit2:retrofit:2.6.1")
     implementation("com.squareup.retrofit2:converter-moshi:2.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.0-M2")
     implementation("io.github.microutils:kotlin-logging:1.6.22")
@@ -45,7 +45,7 @@ dependencies {
 }
 
 group = "io.github.koma-im"
-version = "0.8.9"
+version = "0.8.10"
 description = "koma-library"
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {

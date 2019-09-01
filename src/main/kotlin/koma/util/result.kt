@@ -267,3 +267,12 @@ inline fun <T, E: Any> KResult<T, E>.onSuccess(action: (value: T) -> Unit): KRes
     }
     return this
 }
+
+
+inline fun <R> runCatch(block: () -> R): KResult<R, Throwable> {
+    return try {
+        KResult.success(block())
+    } catch (e: Throwable) {
+        KResult.failure(e)
+    }
+}

@@ -1,5 +1,6 @@
 package koma.matrix
 
+import com.squareup.moshi.JsonClass
 import koma.*
 import koma.KResultF
 import koma.util.KResult as Result
@@ -30,10 +31,8 @@ import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.client.okhttp.AppHttpClient
+import koma.util.*
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma.util.failureOrThrow
-import koma.util.getOrThrow
-import koma.util.onFailure
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.MediaType
@@ -46,6 +45,7 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import koma.util.KResult
 
 private val logger = KotlinLogging.logger {}
 
@@ -326,7 +326,6 @@ class MatrixApi(
 
 }
 
-
 data class AuthedUser(
         val access_token: String,
         val user_id: UserId)
@@ -339,7 +338,7 @@ data class UserPassword(
 )
 interface MatrixLoginApi {
     @POST("_matrix/client/r0/login")
-    suspend fun login(@Body userpass: UserPassword): Call<AuthedUser>
+    fun login(@Body userpass: UserPassword): Call<AuthedUser>
 }
 
 suspend fun login(userpass: UserPassword, server: String, http: AppHttpClient):
@@ -347,12 +346,14 @@ suspend fun login(userpass: UserPassword, server: String, http: AppHttpClient):
     val moshi = MoshiInstance.moshi
     val client = http.client
     val serverUrl = if (server.endsWith('/')) server else "$server/"
-    val retrofit = Retrofit.Builder()
-            .baseUrl(serverUrl)
-            .client(client)
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .build()
-    val service = retrofit.create(MatrixLoginApi::class.java)
-    val auth_call: Call<AuthedUser> = service.login(userpass)
+    val auth_call = runCatch {
+        val retrofit = Retrofit.Builder()
+                .baseUrl(serverUrl)
+                .client(client)
+                .addConverterFactory(MoshiConverterFactory.create(moshi))
+                .build()
+        val service = retrofit.create(MatrixLoginApi::class.java)
+        service.login(userpass)
+    } getOr { return KResult.failure(IOFailure(it)) }
     return auth_call.awaitMatrix()
 }
