@@ -24,9 +24,9 @@ fun CoroutineScope.detectTimeLeap(): Channel<Unit> {
     var prev = Instant.now().epochSecond
     launch {
         while (true) {
-            delay(1000000) // should be 1 sec
+            delay(1000)
             val now = Instant.now().epochSecond
-            if (now - prev > 2) {
+            if (now - prev > 20) {
                 logger.info { "System time leapt from $prev to $now" }
                 timeleapSignal.send(Unit)
             }
