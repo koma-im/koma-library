@@ -9,6 +9,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.selects.select
 import mu.KotlinLogging
+import java.net.SocketTimeoutException
 import java.time.Instant
 import koma.util.KResult as Result
 
@@ -68,8 +69,12 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?
                         }
                         val e = res.failureOrNull()
                         if (e != null) {
-                            logger.warn { "Exception during sync: $e" }
-                            break@sync
+                            if (e is SocketTimeoutException) {
+                                logger.warn { "Timeout during sync: $e" }
+                            } else {
+                                logger.warn { "Exception during sync: $e" }
+                                delay(10000)
+                            }
                         }
                     }
                     is SyncStatus.Resync -> {
