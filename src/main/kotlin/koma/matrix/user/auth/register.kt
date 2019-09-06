@@ -6,6 +6,7 @@ import koma.OtherFailure
 import koma.matrix.UserId
 import koma.matrix.json.MoshiInstance
 import koma.network.client.okhttp.AppHttpClient
+import koma.util.failureOrThrow
 import koma.util.flatMap
 import koma.util.onFailure
 import koma.util.recover
@@ -57,7 +58,8 @@ class Register(val server: HttpUrl, httpClient: AppHttpClient) {
     suspend fun getFlows(): Result<Unauthorized, Failure> {
         val data = RegisterData.Query()
         val result = service.register(data).awaitMatrixAuth()
-        result.onFailure {ex ->
+        if (result.isFailure) {
+        val ex= result.failureOrThrow()
             if (ex is AuthFailure) {
                 session = ex.status.session // Save identifier for future requests
                 return Result.of(ex.status)
