@@ -49,5 +49,6 @@ group = "io.github.koma-im"
 description = "koma-library"
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
+    this.jvmTarget = "1.8"
     freeCompilerArgs = listOf("-XXLanguage:+InlineClasses")
 }

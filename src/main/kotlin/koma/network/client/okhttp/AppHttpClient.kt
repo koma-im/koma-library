@@ -36,12 +36,9 @@ class AppHttpClient(
         proxy: Proxy? = null
 ) {
     val client: OkHttpClient
-    val builder: OkHttpClient.Builder
 
     init {
-        val pool = ConnectionPool()
-        builder = (http_builder?: OkHttpClient.Builder())
-                .connectionPool(pool)
+        val builder = (http_builder?: OkHttpClient.Builder())
                 .given(proxy) { proxy(it)}
                 .given(cacheDir) { cache(Cache(it, cacheSize))}
                 .given(trustAdditionalCertificate) {
@@ -50,7 +47,6 @@ class AppHttpClient(
                 }
                 .addInterceptor(RetryGetPeerCert())
         client = builder.build()
-        client.dispatcher()
     }
 }
 

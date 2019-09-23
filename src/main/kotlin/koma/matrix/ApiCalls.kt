@@ -1,10 +1,8 @@
 package koma.matrix
 
-import com.squareup.moshi.JsonClass
 import koma.*
 import koma.KResultF
 import koma.util.KResult as Result
-import koma.controller.sync.longPollTimeout
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
 import koma.matrix.event.room_message.RoomEvent
@@ -34,9 +32,6 @@ import koma.network.client.okhttp.AppHttpClient
 import koma.util.*
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import mu.KotlinLogging
-import okhttp3.HttpUrl
-import okhttp3.MediaType
-import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -46,6 +41,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import koma.util.KResult
+import okhttp3.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -148,7 +144,7 @@ interface MatrixAccessApiDef {
     fun getEvents(@Query("since") from: String? = null,
                   @Query("access_token") token: String,
                   @Query("full_state") full_state: Boolean = false,
-                  @Query("timeout") timeout: Int = longPollTimeout * 1000,
+                  @Query("timeout") timeout: Int = 50 * 1000,
                   @Query("filter") filter: String? = null)
             : Call<SyncResponse>
 
@@ -181,8 +177,11 @@ class MatrixApi(
         val server: Server) {
 
     val service: MatrixAccessApiDef
-    private val longPollService: MatrixAccessApiDef
     private val mediaService: MatrixMediaApiDef
+    private val retrofit = Retrofit.Builder()
+            .baseUrl(server.apiURL)
+            .addConverterFactory(MoshiConverterFactory.create(MoshiInstance.moshi))
+            .client(server.km.http.client).build()
 
     private var _lastTxnId = AtomicLong()
     private fun getTxnId(): String {
@@ -299,31 +298,62 @@ class MatrixApi(
 
     suspend fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query).awaitMatrix()
 
+    /**
+     * reuse http client
+     */
+    internal inner class EventPoller(
+            /**
+             * if there are no events, server will return empty response after this duration
+             * in milliseconds
+             */
+            val apiTimeout: Int,
+            internal val client: OkHttpClient
+    ) {
+        init {
+            require(apiTimeout < netTimeout) { "network timeout should be longer" }
+        }
+        private val longPollService = retrofit.newBuilder().client(client).build().create(MatrixAccessApiDef::class.java)
+
+        val netTimeout
+            get() = client.readTimeoutMillis()
+
+        suspend fun getEvent(from: String?): Result<SyncResponse, Failure> {
+            return longPollService.getEvents(from, token, timeout = apiTimeout).awaitMatrix()
+        }
+
+        fun withTimeout(apiTimeout: Int,
+                        /**
+                         * http library will return an error after this duration
+                         */
+                        netTimeout: Int = apiTimeout + 10000): EventPoller {
+            require(apiTimeout < netTimeout) { "network timeout should be longer" }
+            val c = if (netTimeout == this.netTimeout) client else {
+                client.newBuilder().readTimeout(netTimeout.toLong(), TimeUnit.MILLISECONDS).build()
+            }
+            return EventPoller(apiTimeout, c)
+        }
+    }
+    private val poller = EventPoller(50000,
+            server.km.http.client.newBuilder().readTimeout(60000L, TimeUnit.SECONDS).build())
+
+    internal fun getEventPoller(apiTimeout: Int,
+                                netTimeout: Int = apiTimeout + 10000): EventPoller {
+        require(apiTimeout < netTimeout) { "network timeout should be longer" }
+        return poller.withTimeout(apiTimeout, netTimeout)
+    }
+
     suspend fun asyncEvents(from: String?): Result<SyncResponse, Failure> {
-        val syRes = longPollService.getEvents(from, token).awaitMatrix()
-        return syRes
+        return poller.getEvent(from)
     }
 
     init {
-        val moshi = MoshiInstance.moshi
-        val rb = Retrofit.Builder()
-                .baseUrl(server.apiURL)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
-        val http = server.km.http
-        service = rb.client(http.client).build()
+        service = retrofit
                 .create(MatrixAccessApiDef::class.java)
 
-        // need to set a longer timeout for the sync api
-        val longPollClient = http.builder.readTimeout(longPollTimeout.toLong() + 10, TimeUnit.SECONDS).build()
-        longPollService = rb.client(longPollClient).build().create(MatrixAccessApiDef::class.java)
-
-        mediaService = Retrofit.Builder()
+        mediaService = retrofit.newBuilder()
                 .baseUrl(server.mediaUrl)
-                .addConverterFactory(MoshiConverterFactory.create())
-                .client(http.client)
                 .build().create(MatrixMediaApiDef::class.java)
     }
-
 }
 
 data class AuthedUser(
