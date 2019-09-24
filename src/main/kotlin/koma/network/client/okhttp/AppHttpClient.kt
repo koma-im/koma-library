@@ -46,6 +46,9 @@ class AppHttpClient(
                     sslSocketFactory(s.socketFactory, m)
                 }
                 .addInterceptor(RetryGetPeerCert())
+                .dispatcher(Dispatcher().apply {
+                    this.maxRequestsPerHost = 10
+                })
         client = builder.build()
     }
 }

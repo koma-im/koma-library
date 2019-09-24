@@ -1,6 +1,7 @@
 package koma.controller.sync
 
 import koma.Failure
+import koma.IOFailure
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
 import koma.util.onSuccess
@@ -70,9 +71,9 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?
                             }
                             since = it.next_batch
                         }
-                        val e = res.failureOrNull()
+                        val e: Failure? = res.failureOrNull()
                         if (e != null) {
-                            if (e is SocketTimeoutException) {
+                            if (e is IOFailure && e.throwable is SocketTimeoutException) {
                                 logger.warn { "Timeout during sync: $e" }
                                 if (poller.apiTimeout > 1) {
                                     poller = poller.withTimeout(1)
