@@ -2,14 +2,14 @@ package koma.network.media
 
 import okhttp3.HttpUrl
 import org.junit.jupiter.api.Test
-
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.jupiter.api.Assertions.*
 
 internal class DownloadKtTest {
 
     @Test
     fun parseMxc() {
-        assertEquals(MHUrl.Http(HttpUrl.parse("http://matrix,org")!!),
+        assertEquals(MHUrl.Http("http://matrix,org".toHttpUrl()),
                 "http://matrix,org".parseMxc())
         assertEquals(null, "htt://matrix,org".parseMxc())
         assertEquals(

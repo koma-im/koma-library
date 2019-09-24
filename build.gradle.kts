@@ -42,6 +42,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.3.2")
+    testImplementation("com.squareup.okhttp3", "mockwebserver", "4.2.0")
     testRuntime("org.slf4j:slf4j-simple:1.8.0-beta2")
 }
 

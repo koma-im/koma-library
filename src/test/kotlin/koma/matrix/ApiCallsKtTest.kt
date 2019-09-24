@@ -5,7 +5,7 @@ import koma.matrix.event.room_message.chat.TextMessage
 import koma.matrix.room.naming.RoomId
 import koma.network.client.okhttp.AppHttpClient
 import kotlinx.coroutines.runBlocking
-import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
@@ -23,7 +23,7 @@ internal class ApiCallsKtTest {
     }
     @Test
     fun apiTest() {
-        val s = km.server(HttpUrl.parse("http://server")!!)
+        val s = km.server("http://server".toHttpUrlOrNull()!!)
         val a = s.account(UserId("uid"), "token")
         runBlocking {
             a.sendMessage(RoomId("room"), TextMessage("msg"))
