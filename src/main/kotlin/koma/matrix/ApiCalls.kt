@@ -321,6 +321,8 @@ class MatrixApi(
             return longPollService.getEvents(from, token, timeout = apiTimeout).awaitMatrix()
         }
 
+        internal fun getCall(from: String?) = longPollService.getEvents(from, token, timeout = apiTimeout)
+
         fun withTimeout(apiTimeout: Int,
                         /**
                          * http library will return an error after this duration

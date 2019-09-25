@@ -1,4 +1,6 @@
+import org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 
 version = "0.8.16"
 
@@ -50,6 +52,9 @@ group = "io.github.koma-im"
 description = "koma-library"
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
-    this.jvmTarget = "1.8"
     freeCompilerArgs = listOf("-XXLanguage:+InlineClasses")
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
 }
