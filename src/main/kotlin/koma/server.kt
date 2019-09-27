@@ -14,35 +14,47 @@ import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import koma.util.coroutine.adapter.retrofit.extractMatrix
 import koma.util.flatMap
-import okhttp3.HttpUrl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import mu.KotlinLogging
+import okhttp3.*
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.SocketTimeoutException
+import java.util.concurrent.atomic.AtomicInteger
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * a matrix instance
  */
 class Server(
         val url: HttpUrl,
-        val km: Koma,
+        val client: OkHttpClient,
         apiPath: String = "_matrix/client/r0/",
         mediaPath: String = "_matrix/media/r0/"
 ) {
     val apiURL = url.newBuilder().addPathSegments(apiPath).build()
     val mediaUrl = url.newBuilder().addPathSegments(mediaPath).build()
-    val service: MatrixPublicApi
-    private val downloader = Downloader(km.http.client)
-    init {
-        val moshi = MoshiInstance.moshi
-        val rb = Retrofit.Builder()
-                .baseUrl(apiURL)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
 
-        service = rb.client(km.http.client).build()
-                .create(MatrixPublicApi::class.java)
+    private val downloader = Downloader(client)
+
+    private val retrofit = Retrofit.Builder()
+            .baseUrl(apiURL)
+            .addConverterFactory(MoshiConverterFactory.create(MoshiInstance.moshi))
+            .client(client).build()
+
+    val service: MatrixPublicApi = retrofit.create(MatrixPublicApi::class.java)
+
+    init {
     }
 
     /**
@@ -87,8 +99,23 @@ class Server(
                 val u = mxcToHttp(mhUrl)
                 return downloader.downloadMedia(u, Integer.MAX_VALUE)
             }
-            is MHUrl.Http -> return km.downloadMedia(mhUrl.http)
+            is MHUrl.Http -> return sharedDownloader().downloadMedia(mhUrl.http)
         }
+    }
+
+    /**
+     * for downloading resources that are not necessarily on this server
+     */
+    private fun sharedDownloader(): Downloader {
+        val s = sharedDownloader
+        if (s!= null) return s
+        logger.info { "creating shared Downloader" }
+        sharedDownloader = Downloader(client)
+        return sharedDownloader!!
+    }
+    companion object {
+        @Volatile
+        private var sharedDownloader: Downloader? = null
     }
 }
 

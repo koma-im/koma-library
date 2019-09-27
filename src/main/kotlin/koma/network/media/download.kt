@@ -1,21 +1,21 @@
 package koma.network.media
 
 import koma.Failure
-import koma.Koma
 import koma.util.coroutine.adapter.okhttp.await
 import koma.util.coroutine.adapter.okhttp.extract
 import koma.util.getOr
 import mu.KotlinLogging
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
 import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
 
-suspend fun Koma.getResponse(url: HttpUrl): Result<ResponseBody, Failure> {
+suspend fun getResponse(httpClient: OkHttpClient, url: HttpUrl): Result<ResponseBody, Failure> {
     val req = Request.Builder().url(url).build()
-    val httpres = this.http.client.newCall(req).await() getOr { return Result.failure(it)}
+    val httpres = httpClient.newCall(req).await() getOr { return Result.failure(it)}
     return httpres.extract()
 }
 

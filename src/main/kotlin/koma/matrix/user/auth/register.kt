@@ -5,13 +5,13 @@ import koma.Failure
 import koma.OtherFailure
 import koma.matrix.UserId
 import koma.matrix.json.MoshiInstance
-import koma.network.client.okhttp.AppHttpClient
 import koma.util.failureOrThrow
 import koma.util.flatMap
 import koma.util.onFailure
 import koma.util.recover
 import koma.util.KResult as Result
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -44,12 +44,11 @@ interface MatrixRegisterApi {
     fun register(@Body data: Any): Call<RegisterdUser>
 }
 
-class Register(val server: HttpUrl, httpClient: AppHttpClient) {
+class Register(val server: HttpUrl, httpClient: OkHttpClient) {
     private val moshi = MoshiInstance.moshi
-    private val client = httpClient.client
     private val retrofit = Retrofit.Builder()
             .baseUrl(server)
-            .client(client)
+            .client(httpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
     private val service = retrofit.create(MatrixRegisterApi::class.java)

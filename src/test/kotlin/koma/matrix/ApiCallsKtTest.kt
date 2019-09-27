@@ -1,18 +1,17 @@
 package koma.matrix
 
 import koma.IOFailure
-import koma.Koma
+import koma.Server
 import koma.matrix.event.room_message.chat.TextMessage
 import koma.matrix.json.MoshiInstance
 import koma.matrix.room.naming.RoomId
 import koma.matrix.sync.Events
 import koma.matrix.sync.RoomsResponse
 import koma.matrix.sync.SyncResponse
-import koma.network.client.okhttp.AppHttpClient
+import koma.network.client.okhttp.KHttpClient
 import koma.util.failureOrThrow
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.QueueDispatcher
@@ -27,8 +26,7 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
 internal class ApiCallsKtTest {
-    private val km = Koma(Proxy.NO_PROXY)
-    private val client  = km.http
+    private val client  = KHttpClient.client
     @Test
     fun loginTest() {
         runBlocking {
@@ -37,12 +35,12 @@ internal class ApiCallsKtTest {
     }
     @Test
     fun apiTest() {
-        val s = km.server("http://server".toHttpUrlOrNull()!!)
+        val s = Server("http://server".toHttpUrlOrNull()!!, client)
         val a = s.account(UserId("uid"), "token")
         runBlocking {
             a.sendMessage(RoomId("room"), TextMessage("msg"))
         }
-        assertThrows(IllegalArgumentException::class.java) { a.EventPoller(10000, client.client) }
+        assertThrows(IllegalArgumentException::class.java) { a.EventPoller(10000, client) }
         assertThrows(IllegalArgumentException::class.java) { a.getEventPoller(10000, 10000) }
         val p = a.getEventPoller(10000)
         assertEquals(10000, p.apiTimeout)
@@ -68,7 +66,7 @@ internal class ApiCallsKtTest {
         repeat(4) { server.enqueue(res) }
         server.start()
         val base = server.url("vx/mock")
-        val s = km.server(base)
+        val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
         val r = runBlocking { a.asyncEvents("test") }
         assert(r.isSuccess)
@@ -110,7 +108,7 @@ internal class ApiCallsKtTest {
         val res= MockResponse().setBody(adapter.toJson(sync))
         server.start()
         val base = server.url("mock")
-        val s = km.server(base)
+        val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
         val p = a.getEventPoller(10, 100)
 
@@ -163,7 +161,7 @@ internal class ApiCallsKtTest {
         server.enqueue(res.clone().setHeadersDelay(101, TimeUnit.MILLISECONDS))
         server.start()
         val base = server.url("mock")
-        val s = km.server(base)
+        val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
         val p = a.getEventPoller(10, 100)
         val r4 = runBlocking { p.getEvent("01") }

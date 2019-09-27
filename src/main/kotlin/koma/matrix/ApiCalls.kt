@@ -28,7 +28,6 @@ import koma.matrix.room.participation.join.JoinRoomResult
 import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
-import koma.network.client.okhttp.AppHttpClient
 import koma.util.*
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import mu.KotlinLogging
@@ -181,7 +180,7 @@ class MatrixApi(
     private val retrofit = Retrofit.Builder()
             .baseUrl(server.apiURL)
             .addConverterFactory(MoshiConverterFactory.create(MoshiInstance.moshi))
-            .client(server.km.http.client).build()
+            .client(server.client).build()
 
     private var _lastTxnId = AtomicLong()
     private fun getTxnId(): String {
@@ -336,7 +335,7 @@ class MatrixApi(
         }
     }
     private val poller = EventPoller(50000,
-            server.km.http.client.newBuilder().readTimeout(60000L, TimeUnit.SECONDS).build())
+            server.client.newBuilder().readTimeout(60000L, TimeUnit.SECONDS).build())
 
     internal fun getEventPoller(apiTimeout: Int,
                                 netTimeout: Int = apiTimeout + 10000): EventPoller {
@@ -373,10 +372,9 @@ interface MatrixLoginApi {
     fun login(@Body userpass: UserPassword): Call<AuthedUser>
 }
 
-suspend fun login(userpass: UserPassword, server: String, http: AppHttpClient):
+suspend fun login(userpass: UserPassword, server: String, client: OkHttpClient):
         KResultF<AuthedUser> {
     val moshi = MoshiInstance.moshi
-    val client = http.client
     val serverUrl = if (server.endsWith('/')) server else "$server/"
     val auth_call = runCatch {
         val retrofit = Retrofit.Builder()
