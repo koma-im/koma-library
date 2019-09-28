@@ -1,8 +1,7 @@
 package koma
 
-import koma.matrix.DiscoveredRoom
-import koma.matrix.MatrixApi
-import koma.matrix.UserId
+import koma.matrix.*
+import koma.matrix.MatrixMediaApiDef
 import koma.matrix.json.MoshiInstance
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.room.naming.ResolveRoomAliasResult
@@ -38,22 +37,29 @@ private val logger = KotlinLogging.logger {}
  */
 class Server(
         val url: HttpUrl,
-        val client: OkHttpClient,
+        val httpClient: OkHttpClient,
         apiPath: String = "_matrix/client/r0/",
         mediaPath: String = "_matrix/media/r0/"
 ) {
     val apiURL = url.newBuilder().addPathSegments(apiPath).build()
     val mediaUrl = url.newBuilder().addPathSegments(mediaPath).build()
 
-    private val downloader = Downloader(client)
+    private val downloader = Downloader(httpClient)
 
     private val retrofit = Retrofit.Builder()
             .baseUrl(apiURL)
             .addConverterFactory(MoshiConverterFactory.create(MoshiInstance.moshi))
-            .client(client).build()
+            .client(httpClient).build()
 
     val service: MatrixPublicApi = retrofit.create(MatrixPublicApi::class.java)
 
+    /**
+     * needs authentication
+     */
+    private val userService = retrofit.create(MatrixAccessApiDef::class.java)
+
+    private val mediaService = retrofit.newBuilder().baseUrl(mediaUrl).build()
+            .create(MatrixMediaApiDef::class.java)
     init {
     }
 
@@ -61,7 +67,7 @@ class Server(
      * get access to APIs that require auth
      */
     fun account(userId: UserId, token: String): MatrixApi {
-        return MatrixApi(token, userId, this)
+        return MatrixApi(token, userId, this, userService, mediaService, retrofit)
     }
 
     /**
@@ -110,7 +116,7 @@ class Server(
         val s = sharedDownloader
         if (s!= null) return s
         logger.info { "creating shared Downloader" }
-        sharedDownloader = Downloader(client)
+        sharedDownloader = Downloader(httpClient)
         return sharedDownloader!!
     }
     companion object {

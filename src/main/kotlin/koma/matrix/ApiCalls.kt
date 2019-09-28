@@ -170,18 +170,14 @@ internal interface MatrixMediaApiDef {
     ): Call<UploadResponse>
 }
 
-class MatrixApi(
+class MatrixApi internal constructor(
         private val token: String,
         val userId: UserId,
-        val server: Server) {
-
-    val service: MatrixAccessApiDef
-    private val mediaService: MatrixMediaApiDef
-    private val retrofit = Retrofit.Builder()
-            .baseUrl(server.apiURL)
-            .addConverterFactory(MoshiConverterFactory.create(MoshiInstance.moshi))
-            .client(server.client).build()
-
+        val server: Server,
+        private val service: MatrixAccessApiDef,
+        private val mediaService: MatrixMediaApiDef,
+        private val retrofit: Retrofit
+) {
     private var _lastTxnId = AtomicLong()
     private fun getTxnId(): String {
         val t = System.currentTimeMillis()
@@ -335,7 +331,7 @@ class MatrixApi(
         }
     }
     private val poller = EventPoller(50000,
-            server.client.newBuilder().readTimeout(60000L, TimeUnit.SECONDS).build())
+            server.httpClient.newBuilder().readTimeout(60000L, TimeUnit.SECONDS).build())
 
     internal fun getEventPoller(apiTimeout: Int,
                                 netTimeout: Int = apiTimeout + 10000): EventPoller {
@@ -348,12 +344,6 @@ class MatrixApi(
     }
 
     init {
-        service = retrofit
-                .create(MatrixAccessApiDef::class.java)
-
-        mediaService = retrofit.newBuilder()
-                .baseUrl(server.mediaUrl)
-                .build().create(MatrixMediaApiDef::class.java)
     }
 }
 
