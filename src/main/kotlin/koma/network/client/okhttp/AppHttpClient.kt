@@ -80,7 +80,10 @@ internal class CloseTimeoutSocketListener(
 
     override fun connectStart(call: okhttp3.Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
         isNewConn = true
-        logger.debug { "$id is new conn to ${call.request()} $inetSocketAddress via $proxy" }
+        logger.debug {
+            val u = call.request().url()
+            "$id is new conn to host=${u.host()} path=${u.encodedPath()} addr=$inetSocketAddress via $proxy"
+        }
     }
 
     override fun connectionAcquired(call: okhttp3.Call, connection: Connection) {
@@ -102,7 +105,10 @@ internal class CloseTimeoutSocketListener(
 
             }?: logger.error { "connection unknown" }
         } else {
-            logger.debug { "call $id  ${call.request().url()} fail ${call.request()} $ioe" }
+            logger.debug {
+                val u = call.request().url()
+                "call $id host=${u.host()} path=${u.encodedPath()} fail $ioe"
+            }
         }
     }
 }

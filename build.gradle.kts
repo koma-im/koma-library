@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 
-version = "0.9.0"
+version = "0.9.1"
 
 plugins {
     id("java")
