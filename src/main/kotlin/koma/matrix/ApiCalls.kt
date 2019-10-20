@@ -147,6 +147,14 @@ interface MatrixAccessApiDef {
                   @Query("filter") filter: String? = null)
             : Call<SyncResponse>
 
+    @GET("notifications")
+    fun getNotifications(
+            @Query("access_token") token: String,
+            @Query("from") from: String? = null,
+            @Query("limit") limit: Int? = null,
+            @Query("only") only: String? = null
+    ): Call<NotificationResponse>
+
     @PUT("profile/{userId}/avatar_url")
     fun updateAvatar(@Path("userId") user_id: UserId,
                      @Query("access_token") token: String,
@@ -178,10 +186,10 @@ class MatrixApi internal constructor(
         private val mediaService: MatrixMediaApiDef,
         private val retrofit: Retrofit
 ) {
-    private var _lastTxnId = AtomicLong()
+    private val txnId = AtomicLong()
     private fun getTxnId(): String {
         val t = System.currentTimeMillis()
-        val id = _lastTxnId.accumulateAndGet(t) { value, given ->
+        val id = txnId.accumulateAndGet(t) { value, given ->
             if (given > value) given else value + 1
         }
         return id.toString()
@@ -189,6 +197,11 @@ class MatrixApi internal constructor(
 
     suspend fun createRoom(settings: CreateRoomSettings): KResultF<CreateRoomResult> {
         return service.createRoom(token, settings).awaitMatrix()
+    }
+
+    suspend fun getNotifications(from: String? = null, limit: Int? = null, only: String? = null
+    ): KResultF<NotificationResponse> {
+        return service.getNotifications(token, from, limit, only).awaitMatrix()
     }
 
     suspend fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null

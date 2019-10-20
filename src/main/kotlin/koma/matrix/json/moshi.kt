@@ -1,6 +1,7 @@
 package koma.matrix.json
 
 import com.squareup.moshi.Moshi
+import koma.matrix.NotificationResponse
 import koma.matrix.event.rooRoomEvent.RoomEventAdapterFactory
 import koma.matrix.event.room_message.RoomEvent
 import koma.matrix.event.room_message.chat.MessageAdapterFactory
@@ -14,6 +15,7 @@ object MoshiInstance{
             .add(RoomEventAdapterFactory())
             .add(NewTypeStringAdapterFactory())
             .add(RoomEventTypeEnumAdapter())
+            .add(NotificationResponse.EventAdapter())
             .add(RawJsonAdapterFactory())
     val moshi = moshiBuilder.build()
     val mapAdapter = moshi.adapter(Map::class.java)
