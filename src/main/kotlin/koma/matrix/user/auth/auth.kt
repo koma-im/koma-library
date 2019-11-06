@@ -9,6 +9,7 @@ import koma.matrix.json.MoshiInstance
 import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import koma.util.coroutine.adapter.retrofit.extractMatrix
+import koma.util.failureOrThrow
 import koma.util.getOr
 import koma.util.onFailure
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,11 @@ import retrofit2.Call
  * the server may return instructions for further authentication
  */
 internal suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Failure> {
-    val res = this.await() getOr {return Result.failure(it)}
+    val r = this.await()
+    val r1 = r.getOrNull()
+    val res = if (r1 != null) r1 else {
+        return Result.failure(r.failureOrThrow())
+    }
     val body = res.errorBody()
     if (res.code() == 401 && body!=null) {
         val unauth = withContext(Dispatchers.IO) {

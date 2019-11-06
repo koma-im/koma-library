@@ -119,10 +119,11 @@ internal fun<E: Any> createFailure(exception: E): Any {
  *
  * Note, that an exception thrown by [onFailure] function is rethrown by this function.
  *
- * This function is shorthand for `fold(onSuccess = { it }, onFailure = onFailure)` (see [fold]).
+ * Non-local return after resuming from an OkHttp async call may result in an error
+ * So it's currently forbidden
  */
 @Suppress("NOTHING_TO_INLINE")
-inline infix fun <R, T : R, E: Any> KResult<T, E>.getOr(onFailure: (E) -> R): R {
+inline infix fun <R, T : R, E: Any> KResult<T, E>.getOr(crossinline onFailure: (E) -> R): R {
     contract {
         callsInPlace(onFailure, InvocationKind.AT_MOST_ONCE)
     }

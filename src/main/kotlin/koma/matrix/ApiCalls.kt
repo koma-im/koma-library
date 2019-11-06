@@ -264,9 +264,9 @@ class MatrixApi internal constructor(
 
     suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Failure> {
         val r = service.getStateEvent(roomId, RoomEventType.Name, token).awaitMatrix()
-        if (r.isFailure) {
+        val s = r.getOrNull() ?: return run{
             val e = r.failureOrThrow()
-            return if (e is HttpFailure && e.http_code == 404) {
+            if (e is HttpFailure && e.http_code == 404) {
                 Result.success(Optional.empty())
             }else if (e is MatrixFailure && e.errcode == "M_NOT_FOUND") {
                 Result.success(Optional.empty())
@@ -274,7 +274,7 @@ class MatrixApi internal constructor(
                 Result.failure(e)
             }
         }
-        val n = r.getOrThrow()["name"]?.toString()
+        val n = s["name"]?.toString()
         return Result.success(Optional.ofNullable(n))
     }
     suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Failure> {
@@ -387,6 +387,9 @@ suspend fun login(userpass: UserPassword, server: String, client: OkHttpClient):
                 .build()
         val service = retrofit.create(MatrixLoginApi::class.java)
         service.login(userpass)
-    } getOr { return KResult.failure(IOFailure(it)) }
-    return auth_call.awaitMatrix()
+    }
+    val c = if (auth_call.isFailure) {
+        return KResult.failure(IOFailure(auth_call.failureOrThrow()))
+    } else auth_call.getOrThrow()
+    return c.awaitMatrix()
 }
