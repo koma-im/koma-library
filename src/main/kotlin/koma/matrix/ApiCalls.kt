@@ -278,9 +278,8 @@ class MatrixApi internal constructor(
         return Result.success(Optional.ofNullable(n))
     }
     suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Failure> {
-        val r = service.getStateEvent(roomId, RoomEventType.Avatar, token).awaitMatrix()
-        if (r.isFailure) {
-            val e = r.failureOrNull()!!
+        val (r, e, x) = service.getStateEvent(roomId, RoomEventType.Avatar, token).awaitMatrix()
+        if (x.testFailure(r, e)) {
             return if (e is HttpFailure && e.http_code == 404) {
                 Result.success(Optional.empty())
             } else if (e is MatrixFailure && e.errcode == "M_NOT_FOUND") {
@@ -289,8 +288,8 @@ class MatrixApi internal constructor(
                 Result.failure(e)
             }
         } else {
-            logger.debug { "got room avatar ${r.getOrNull()}" }
-            return Result.success(Optional.ofNullable(r.getOrNull()!!.get("url") as String))
+            logger.debug { "got room avatar ${r}" }
+            return Result.success(Optional.ofNullable(r["url"]?.toString()))
         }
     }
 

@@ -1,7 +1,5 @@
 package koma.util
 
-import java.io.Serializable
-import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -62,6 +60,9 @@ inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
                 else -> "Success($_value)"
             }
 
+    operator fun component1(): T? = getOrNull()
+    operator fun component2(): E? = failureOrNull()
+    operator fun component3(): KResult<T, E> = this
     /**
      * Companion object for [KResult] class that contains its constructor functions
      * [success] and [failure].
@@ -257,7 +258,7 @@ inline fun <R, T : R, E: Any> KResult<T, E>.recover(transform: (E) -> R): KResul
  * Returns the original `KResult` unchanged.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T, E: Any> KResult<T, E>.onFailure(action: (exception: E) -> Unit): KResult<T, E> {
+inline fun <T, E: Any> KResult<T, E>.onFailure(crossinline action: (exception: E) -> Unit): KResult<T, E> {
     failureOrNull()?.let { action(it) }
     return this
 }
@@ -282,4 +283,15 @@ inline fun <R> runCatch(block: () -> R): KResult<R, Throwable> {
     } catch (e: Throwable) {
         KResult.failure(e)
     }
+}
+
+/**
+ * this is an extension method in order to make sure T is not nullable
+ */
+fun<T: Any, E: Any> KResult<T, E>.testFailure(value: T?, error: E?): Boolean {
+    contract {
+        returns(false) implies (value != null)
+        returns(true) implies (error != null)
+    }
+    return error != null
 }

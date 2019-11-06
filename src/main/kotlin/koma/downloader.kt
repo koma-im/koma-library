@@ -9,10 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
-import okhttp3.CacheControl
-import okhttp3.HttpUrl
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.*
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.LinkedHashMap
@@ -118,15 +115,16 @@ internal class Downloader(
         }
 
         private suspend fun download(req: Request): KResult<ByteArray, KomaFailure> {
-            val r = httpClient.newCall(req).await()
-            if (r.isFailure) {
-                return KResult.failure( r.failureOrThrow())
+            val (s, f, r) = httpClient.newCall(req).await()
+            if (r.testFailure(s, f)) {
+                return KResult.failure( f)
+            } else {
+                val body = s.extract()
+                val bs = body.map { it.bytes() }
+                chan.send(DlMsg.Complete(url))
+                return bs
             }
-            val res = r.getOrThrow()
-            val body = res.extract()
-            val bs = body.map { it.bytes() }
-            chan.send(DlMsg.Complete(url))
-            return bs
+
         }
     }
 }
