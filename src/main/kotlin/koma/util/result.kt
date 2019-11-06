@@ -1,6 +1,9 @@
 package koma.util
 
-import java.lang.Exception
+import java.io.Serializable
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 @Suppress("NON_PUBLIC_PRIMARY_CONSTRUCTOR_OF_INLINE_CLASS", "NOTHING_TO_INLINE", "DEPRECATION")
 inline class KResult<out T, out E: Any> @PublishedApi internal constructor(
@@ -120,6 +123,9 @@ internal fun<E: Any> createFailure(exception: E): Any {
  */
 @Suppress("NOTHING_TO_INLINE")
 inline infix fun <R, T : R, E: Any> KResult<T, E>.getOr(onFailure: (E) -> R): R {
+    contract {
+        callsInPlace(onFailure, InvocationKind.AT_MOST_ONCE)
+    }
     return if (isFailure) {
         onFailure(failureOrThrow())
     } else {

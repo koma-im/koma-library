@@ -52,7 +52,9 @@ group = "io.github.koma-im"
 description = "koma-library"
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
-    freeCompilerArgs = listOf("-XXLanguage:+InlineClasses")
+    freeCompilerArgs = listOf(
+            "-XXLanguage:+InlineClasses",
+            "-Xuse-experimental=kotlin.contracts.ExperimentalContracts")
 }
 
 tasks.withType<KotlinCompile> {

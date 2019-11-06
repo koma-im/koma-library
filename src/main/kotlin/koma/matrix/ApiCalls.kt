@@ -274,7 +274,7 @@ class MatrixApi internal constructor(
                 Result.failure(e)
             }
         }
-        val n = r.getOrThrow().get("name") as String
+        val n = r.getOrThrow()["name"]?.toString()
         return Result.success(Optional.ofNullable(n))
     }
     suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Failure> {
