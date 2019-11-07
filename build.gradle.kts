@@ -54,7 +54,10 @@ val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
     freeCompilerArgs = listOf(
             "-XXLanguage:+InlineClasses",
-            "-Xuse-experimental=kotlin.contracts.ExperimentalContracts")
+            "-Xuse-experimental=kotlin.contracts.ExperimentalContracts"
+            , "-Xuse-experimental=kotlin.time.ExperimentalTime"
+            , "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi"
+    )
 }
 
 tasks.withType<KotlinCompile> {

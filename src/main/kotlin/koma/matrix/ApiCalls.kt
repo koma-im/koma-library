@@ -40,7 +40,9 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import koma.util.KResult
+import koma.util.coroutine.withTimeout
 import okhttp3.*
+import kotlin.time.seconds
 
 private val logger = KotlinLogging.logger {}
 

@@ -2,6 +2,8 @@ package koma
 
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
+import koma.util.given
+import kotlin.time.Duration
 
 open class Failure(val message: String)
 
@@ -16,6 +18,16 @@ class IOFailure(val throwable: Throwable): KomaFailure("IOError $throwable") {
         return "IOError $throwable"
     }
 }
+class Timeout(val duration: Duration? = null
+              , val cause: Throwable? = null
+): KomaFailure("timeout $duration $cause") {
+    override fun toString() = StringBuilder("Timeout").given(duration) {
+        append(" after $it")
+    }.given(cause) {
+        append(" from $it")
+    }.toString()
+}
+
 class InvalidData(message: String): KomaFailure(message) {
     override fun toString() = "InvalidData, $message"
 }
