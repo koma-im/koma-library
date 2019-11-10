@@ -3,8 +3,11 @@ package koma.util.coroutine.adapter.retrofit
 import com.squareup.moshi.JsonEncodingException
 import koma.*
 import koma.matrix.json.MoshiInstance
+import koma.matrix.json.deserialize
 import koma.util.flatMap
 import koma.util.getOr
+import koma.util.getOrThrow
+import koma.util.testFailure
 import mu.KotlinLogging
 import retrofit2.Call
 import retrofit2.Response
@@ -14,7 +17,9 @@ import koma.util.KResult as Result
 private val logger = KotlinLogging.logger {}
 
 internal suspend fun <T : Any> Call<T>.awaitMatrix(): Result<T, KomaFailure> {
-    return this.await().flatMap { it.extractMatrix() }
+    val (response, failure, result) = this.await()
+    if (result.testFailure(response, failure)) return Result.failure(failure)
+    return response.extractMatrix()
 }
 
 /**
@@ -35,13 +40,16 @@ internal fun<T> Response<T>.extractMatrix(): Result<T, KomaFailure> {
 
 @Suppress("UNCHECKED_CAST")
 private fun tryGetMatrixFailure(s: String, code: Int, message: String): MatrixFailure? {
-    val m = try {
-        MoshiInstance.mapAdapter.fromJson(s) ?: return null
-    } catch (e: Throwable) {
+    val (m, e, result) = deserialize<Map<String, Any>>(s)
+    if (result.testFailure(m ,e)) {
         logger.warn { "Is not json, $s. Exception: $e" }
         return null
     }
-    val j: MutableMap<String, Any> = m as MutableMap<String, Any>
+    return m.toMatrixFailure(code, message)
+}
+
+internal fun Map<String, Any>.toMatrixFailure(code: Int, message: String): MatrixFailure? {
+    val j: MutableMap<String, Any> = this as MutableMap<String, Any>
     val c = j.remove("errcode")?.toString() ?: return null
     val e = j.remove("error")?.toString() ?: return null
     return MatrixFailure(c, e, j, code, message)

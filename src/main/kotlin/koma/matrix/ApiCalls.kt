@@ -40,8 +40,11 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import koma.util.KResult
+import koma.util.coroutine.adapter.okhttp.awaitType
 import koma.util.coroutine.withTimeout
+import kotlinx.coroutines.internal.artificialFrame
 import okhttp3.*
+import kotlin.time.Duration
 import kotlin.time.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -140,15 +143,6 @@ interface MatrixAccessApiDef {
                  @Query("access_token") token: String
     ): Call<ContextResponse>
 
-
-    @GET("sync")
-    fun getEvents(@Query("since") from: String? = null,
-                  @Query("access_token") token: String,
-                  @Query("full_state") full_state: Boolean = false,
-                  @Query("timeout") timeout: Int = 50 * 1000,
-                  @Query("filter") filter: String? = null)
-            : Call<SyncResponse>
-
     @GET("notifications")
     fun getNotifications(
             @Query("access_token") token: String,
@@ -185,8 +179,7 @@ class MatrixApi internal constructor(
         val userId: UserId,
         val server: Server,
         private val service: MatrixAccessApiDef,
-        private val mediaService: MatrixMediaApiDef,
-        private val retrofit: Retrofit
+        private val mediaService: MatrixMediaApiDef
 ) {
     private val txnId = AtomicLong()
     private fun getTxnId(): String {
@@ -307,57 +300,34 @@ class MatrixApi internal constructor(
 
     suspend fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query).awaitMatrix()
 
-    /**
-     * reuse http client
-     */
-    internal inner class EventPoller(
-            /**
-             * if there are no events, server will return empty response after this duration
-             * in milliseconds
-             */
-            val apiTimeout: Int,
-            internal val client: OkHttpClient
-    ) {
-        init {
-            require(apiTimeout < netTimeout) { "network timeout should be longer" }
+    private val longClient = server.httpClient.newBuilder().readTimeout(100, TimeUnit.SECONDS).build()
+    private val syncUrlBuilder = server.apiURL.newBuilder().addPathSegment("sync")
+    suspend fun sync(since: String?
+                            , timeout: Duration = 50.seconds
+                            , full_state: Boolean = false
+                            , filter: String? = null
+                            , networkTimeout: Duration = timeout + 10.seconds
+    ): Result<SyncResponse, KomaFailure> {
+        val url = syncUrlBuilder.addQueryParameter("access_token", token)
+                .given(since) {addQueryParameter("since", it)}
+                .addQueryParameter("timeout", timeout.toLongMilliseconds().toString())
+                .addQueryParameter("full_state", full_state.toString())
+                .given(filter) {addQueryParameter("filter", it)}
+                .build()
+        val request = Request.Builder().url(url).build()
+        val client = if (longClient.readTimeoutMillis() > networkTimeout.inMilliseconds) {
+            longClient
+        } else {
+            longClient.newBuilder().readTimeout(networkTimeout.toLongMilliseconds()+1000, TimeUnit.MILLISECONDS).build()
         }
-        private val longPollService = retrofit.newBuilder().client(client).build().create(MatrixAccessApiDef::class.java)
-
-        val netTimeout
-            get() = client.readTimeoutMillis()
-
-        suspend fun getEvent(from: String?): Result<SyncResponse, Failure> {
-            return longPollService.getEvents(from, token, timeout = apiTimeout).awaitMatrix()
+        val call = client.newCall(request)
+        val (success,failure, result) = withTimeout(networkTimeout) {
+            call.awaitType<SyncResponse>()
         }
-
-        internal fun getCall(from: String?) = longPollService.getEvents(from, token, timeout = apiTimeout)
-
-        fun withTimeout(apiTimeout: Int,
-                        /**
-                         * http library will return an error after this duration
-                         */
-                        netTimeout: Int = apiTimeout + 10000): EventPoller {
-            require(apiTimeout < netTimeout) { "network timeout should be longer" }
-            val c = if (netTimeout == this.netTimeout) client else {
-                client.newBuilder().readTimeout(netTimeout.toLong(), TimeUnit.MILLISECONDS).build()
-            }
-            return EventPoller(apiTimeout, c)
+        if (result.testFailure(success, failure)) {
+            return KResult.failure(failure)
         }
-    }
-    private val poller = EventPoller(50000,
-            server.httpClient.newBuilder().readTimeout(60000L, TimeUnit.SECONDS).build())
-
-    internal fun getEventPoller(apiTimeout: Int,
-                                netTimeout: Int = apiTimeout + 10000): EventPoller {
-        require(apiTimeout < netTimeout) { "network timeout should be longer" }
-        return poller.withTimeout(apiTimeout, netTimeout)
-    }
-
-    suspend fun asyncEvents(from: String?): Result<SyncResponse, Failure> {
-        return poller.getEvent(from)
-    }
-
-    init {
+        return success
     }
 }
 

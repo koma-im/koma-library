@@ -1,8 +1,11 @@
 package koma
 
+import com.squareup.moshi.JsonDataException
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
 import koma.util.given
+import java.io.IOException
+import java.net.SocketTimeoutException
 import kotlin.time.Duration
 
 open class Failure(val message: String)
@@ -62,3 +65,12 @@ class MatrixFailure(
 
 class AuthFailure(val status: Unauthorized, http_code: Int, http_message: String
 ): HttpFailure(http_code, http_message)
+
+fun Throwable.toFailure(): KomaFailure {
+    return when (this) {
+        is SocketTimeoutException -> Timeout(cause = this)
+        is JsonDataException -> InvalidData("$this")
+        is IOException -> IOFailure(this)
+        else -> OtherFailure("$this")
+    }
+}

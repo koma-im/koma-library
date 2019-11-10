@@ -2,16 +2,17 @@ package koma.controller.sync
 
 import koma.Failure
 import koma.IOFailure
+import koma.Timeout
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
-import koma.util.onSuccess
+import koma.util.testFailure
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.selects.select
 import mu.KotlinLogging
 import java.net.SocketTimeoutException
 import java.time.Instant
+import kotlin.time.seconds
 import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
@@ -52,32 +53,25 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?
     suspend fun startSyncing() = coroutineScope {
         // check whether the computer was not running for some time
         val timeCheck = detectTimeLeap()
-        val longPollTimeout = 50000
-        var poller = client.getEventPoller(longPollTimeout)
+        var timeout = 50.seconds
         launch {
             sync@ while (true) {
-                val apiRes = async { poller.getEvent(since) }
+                val apiRes = async { client.sync(since, timeout = timeout) }
                 val ss: SyncStatus = select<SyncStatus> {
                     apiRes.onAwait { SyncStatus.Response(it) }
                     timeCheck.onReceive { SyncStatus.Resync() }
                 }
                 when (ss) {
                     is SyncStatus.Response -> {
-                        val res = ss.response
+                        val (it, e, res) = ss.response
                         events.send(res)
-                        res.onSuccess {
-                            if (poller.apiTimeout < longPollTimeout) {
-                                poller = poller.withTimeout(longPollTimeout)
-                            }
+                        if (!res.testFailure(it, e)) {
+                            timeout = 50.seconds
                             since = it.next_batch
-                        }
-                        val e: Failure? = res.failureOrNull()
-                        if (e != null) {
-                            if (e is IOFailure && e.throwable is SocketTimeoutException) {
+                        }else {
+                            if (e is Timeout || (e is IOFailure && e.throwable is SocketTimeoutException)) {
                                 logger.warn { "Timeout during sync: $e" }
-                                if (poller.apiTimeout > 1) {
-                                    poller = poller.withTimeout(1)
-                                }
+                                timeout = 1.seconds
                             } else {
                                 logger.warn { "Exception during sync: $e" }
                                 delay(10000)

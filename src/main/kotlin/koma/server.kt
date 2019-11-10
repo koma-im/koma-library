@@ -67,7 +67,7 @@ class Server(
      * get access to APIs that require auth
      */
     fun account(userId: UserId, token: String): MatrixApi {
-        return MatrixApi(token, userId, this, userService, mediaService, retrofit)
+        return MatrixApi(token, userId, this, userService, mediaService)
     }
 
     /**

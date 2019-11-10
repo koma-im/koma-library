@@ -1,7 +1,7 @@
 package koma.matrix
 
-import koma.IOFailure
 import koma.Server
+import koma.Timeout
 import koma.matrix.event.room_message.chat.TextMessage
 import koma.matrix.json.MoshiInstance
 import koma.matrix.room.naming.RoomId
@@ -15,16 +15,14 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.QueueDispatcher
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.assertThrows
-import java.io.IOError
-import java.lang.IllegalArgumentException
-import java.net.Proxy
-import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
+import kotlin.time.ExperimentalTime
+import kotlin.time.milliseconds
 
+@ExperimentalTime
 internal class ApiCallsKtTest {
     private val client  = KHttpClient.client
     @Test
@@ -40,20 +38,6 @@ internal class ApiCallsKtTest {
         runBlocking {
             a.sendMessage(RoomId("room"), TextMessage("msg"))
         }
-        assertThrows(IllegalArgumentException::class.java) { a.EventPoller(10000, client) }
-        assertThrows(IllegalArgumentException::class.java) { a.getEventPoller(10000, 10000) }
-        val p = a.getEventPoller(10000)
-        assertEquals(10000, p.apiTimeout)
-        assertEquals(20000, p.netTimeout)
-        assertThrows(IllegalArgumentException::class.java) { p.withTimeout(10000, 10000) }
-        val p1 = p.withTimeout(10001)
-        assertNotSame(p1.client, p.client)
-        assertEquals(10001, p1.apiTimeout)
-        assertEquals(20001, p1.netTimeout)
-        val p2 = p.withTimeout(10001, 20000)
-        assertSame(p2.client, p.client)
-        assertEquals(10001, p2.apiTimeout)
-        assertEquals(20000, p2.netTimeout)
     }
 
     @Test
@@ -68,31 +52,33 @@ internal class ApiCallsKtTest {
         val base = server.url("vx/mock")
         val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
-        val r = runBlocking { a.asyncEvents("test") }
+        val r = runBlocking { a.sync("test") }
         assert(r.isSuccess)
-        val r1 = runBlocking { a.asyncEvents("test1") }
+        val r1 = runBlocking { a.sync("test1") }
         assert(r1.isSuccess)
-        val p = a.getEventPoller(1000)
-        val r2 = runBlocking { p.getEvent("test2") }
+        val r2 = runBlocking { a.sync("test2", timeout =1000.milliseconds) }
         assert(r2.isSuccess)
-        val r3 = runBlocking { p.getEvent("test3") }
+        val r3 = runBlocking { a.sync("test3", timeout =1000.milliseconds) }
         assert(r3.isSuccess)
 
-        val p1 = p.withTimeout(1, 100)
         repeat(2) {  server.enqueue(res) }
-        assert(runBlocking { p1.getEvent("test3.5") }.isSuccess)
-        assert(runBlocking { p.getEvent("test3.4") }.isSuccess)
+        assert(runBlocking { a.sync("test3.5", timeout =1000.milliseconds) }.isSuccess)
+        assert(runBlocking { a.sync("test3.4", timeout =1000.milliseconds) }.isSuccess)
 
         repeat(2) { server.enqueue(res.clone().setHeadersDelay(101, TimeUnit.MILLISECONDS)) }
-        assertThrows<SocketTimeoutException> {p1.getCall("test4-0").execute()  }
+        val r40 = runBlocking {
+            a.sync("test4-0", timeout =1.milliseconds, networkTimeout = 100.milliseconds)
+        }
+        assert(r40.isFailure)
+        assert(r40.failureOrThrow() is Timeout)
 
-        val r4 = runBlocking { p1.getEvent("test4") }
+        val r4 = runBlocking { a.sync("test4", timeout =1.milliseconds, networkTimeout = 100.milliseconds) }
         assert(r4.isFailure)
         val f = r4.failureOrThrow()
-        assert(f is IOFailure && f.throwable is SocketTimeoutException)
+        assert(f is Timeout)
 
         server.enqueue(res)
-        assert(runBlocking { p1.getEvent("test5") }.isSuccess)
+        assert(runBlocking { a.sync("test5", timeout =1.milliseconds, networkTimeout = 100.milliseconds) }.isSuccess)
 
         server.shutdown()
     }
@@ -110,14 +96,17 @@ internal class ApiCallsKtTest {
         val base = server.url("mock")
         val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
-        val p = a.getEventPoller(10, 100)
+                //  val p = a.getEventPoller(10, 100)
 
         assertEquals(0, disp.queuedCount())
         assertEquals(0, server.requestCount)
         server.enqueue(res)
         assertEquals(1, disp.queuedCount())
         assertEquals(0, server.dispatcher.peek().getHeadersDelay(TimeUnit.MILLISECONDS))
-        assertDoesNotThrow { p.getCall("00").execute() }
+        assertTrue { runBlocking {
+            val response = a.sync("00", timeout =10.milliseconds, networkTimeout = 100.milliseconds)
+            response.isSuccess
+        }}
         assertEquals(0, disp.queuedCount())
         assertEquals(1, server.requestCount)
         server.takeRequest()
@@ -125,7 +114,13 @@ internal class ApiCallsKtTest {
         server.enqueue(res.clone().setHeadersDelay(101, TimeUnit.MILLISECONDS))
         assertEquals(1, disp.queuedCount())
         assertEquals(101, server.dispatcher.peek().getHeadersDelay(TimeUnit.MILLISECONDS))
-        assertThrows<SocketTimeoutException> { p.getCall("01").execute() }
+        val (success, failure, result) = runBlocking {
+             a.sync("01", networkTimeout = 1.milliseconds)
+        }
+        assert(result.isFailure)
+        assert(success == null)
+        assert(failure != null)
+        assert(failure is Timeout)
         assertEquals(2, server.requestCount)
         assertEquals(0, disp.queuedCount())
         server.takeRequest()
@@ -134,21 +129,14 @@ internal class ApiCallsKtTest {
         assertEquals(1, disp.queuedCount())
         assertEquals(res.getHeadersDelay(TimeUnit.MILLISECONDS), server.dispatcher.peek().getHeadersDelay(TimeUnit.MILLISECONDS))
         assertEquals(0, server.dispatcher.peek().getHeadersDelay(TimeUnit.MILLISECONDS))
-        assertDoesNotThrow { p.withTimeout(1,104).getCall("02").execute() }
+        val r2 = runBlocking { a.sync("02", networkTimeout = 100.milliseconds) }
+        assert(r2.isSuccess)
         assertEquals(3, server.requestCount)
         assertEquals(0, disp.queuedCount())
         server.takeRequest()
 
         server.enqueue(res)
         assertEquals(0, server.dispatcher.peek().getHeadersDelay(TimeUnit.MILLISECONDS))
-        assertDoesNotThrow { p.getCall("03").execute() }
-        server.takeRequest()
-
-        server.enqueue(res)
-        assert(runBlocking { p.getEvent("03") }.isSuccess)
-        server.takeRequest()
-
-        server.shutdown()
     }
 
     @Test
@@ -157,24 +145,30 @@ internal class ApiCallsKtTest {
         val sync = SyncResponse("next_bat", Events(listOf()), Events(listOf()),
                 RoomsResponse(mapOf(), mapOf(), mapOf()))
         val adapter = MoshiInstance.moshi.adapter<SyncResponse>(SyncResponse::class.java)
-        val res= MockResponse().setBody(adapter.toJson(sync))
+        val res = MockResponse().setBody(adapter.toJson(sync))
         server.enqueue(res.clone().setHeadersDelay(101, TimeUnit.MILLISECONDS))
         server.start()
         val base = server.url("mock")
         val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
-        val p = a.getEventPoller(10, 100)
-        val r4 = runBlocking { p.getEvent("01") }
+        //val p = a.getEventPoller(10, 100)
+        val r4 = runBlocking { a.sync("01", timeout = 10.milliseconds, networkTimeout = 100.milliseconds) }
         assert(r4.isFailure)
         val f = r4.failureOrThrow()
-        assert(f is IOFailure && f.throwable is SocketTimeoutException)
+        assert(f is Timeout)
 
         server.enqueue(res)
-        assertDoesNotThrow { p.getCall("02").execute() }
-
+        val r3 = runBlocking {
+             a.sync("02", timeout = 10.milliseconds, networkTimeout = 100.milliseconds)
+        }
+        assert(r3.isSuccess) { "$r3  is not Success "}
         server.enqueue(res)
-        assert(runBlocking { p.getEvent("02") }.isSuccess)
-
+        assertTrue {
+            runBlocking {
+                val r = a.sync("02", timeout = 10.milliseconds, networkTimeout = 100.milliseconds)
+                r.isSuccess
+            }
+        }
         server.shutdown()
     }
 }
