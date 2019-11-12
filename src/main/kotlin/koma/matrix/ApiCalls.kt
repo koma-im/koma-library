@@ -301,14 +301,14 @@ class MatrixApi internal constructor(
     suspend fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query).awaitMatrix()
 
     private val longClient = server.httpClient.newBuilder().readTimeout(100, TimeUnit.SECONDS).build()
-    private val syncUrlBuilder = server.apiURL.newBuilder().addPathSegment("sync")
+    private val syncUrl = server.apiURL.newBuilder().addPathSegment("sync").build()
     suspend fun sync(since: String?
                             , timeout: Duration = 50.seconds
                             , full_state: Boolean = false
                             , filter: String? = null
                             , networkTimeout: Duration = timeout + 10.seconds
     ): Result<SyncResponse, KomaFailure> {
-        val url = syncUrlBuilder.addQueryParameter("access_token", token)
+        val url = syncUrl.newBuilder().addQueryParameter("access_token", token)
                 .given(since) {addQueryParameter("since", it)}
                 .addQueryParameter("timeout", timeout.toLongMilliseconds().toString())
                 .addQueryParameter("full_state", full_state.toString())
