@@ -1,8 +1,10 @@
 package koma
 
+import mu.KotlinLogging
 import okhttp3.*
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.QueueDispatcher
 import org.junit.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
@@ -13,6 +15,8 @@ import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
+
+private val logger = KotlinLogging.logger {}
 
 internal class TimeoutEventListenerTest {
     
@@ -64,7 +68,9 @@ internal class TimeoutEventListenerTest {
     }
     @Test
     fun testMockEvent() {
+        val disp = TestingDispatcher()
         val server = MockWebServer()
+        server.dispatcher = disp
         server.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
         val listeners = mutableListOf<TestingEventListener>()
         val client = OkHttpClient.Builder().eventListenerFactory(object : EventListener.Factory {
@@ -79,6 +85,7 @@ internal class TimeoutEventListenerTest {
         server.start()
         val base = server.url("v2/mock")
         server.enqueue(MockResponse().setBody("mockEventTestBody0"))
+        assertEquals(1, disp.queuedCount())
         val req = Request.Builder().url(base).build()
         val res1 = client.newCall(req).execute()
         assertEquals("mockEventTestBody0", res1.body?.string())
@@ -95,7 +102,13 @@ internal class TimeoutEventListenerTest {
                     .setHeadersDelay(20, TimeUnit.MILLISECONDS)
                     .setBody("mockEventTestBody1"))
         }
+        assertEquals(2, disp.queuedCount())
         assertThrows<SocketTimeoutException> {  c1.newCall(req).execute() }
+        if (disp.queuedCount() == 2) {
+            logger.debug { "removing timed out response" }
+            disp.popQueue()
+        }
+        assertEquals(1, disp.queuedCount())
         assertEquals(2, listeners.size)
         val e1a = listeners[1]
         assert(e1a.callStart)
@@ -196,5 +209,17 @@ private class TestingEventListener(
         connFail = true
         exception = ioe
         log.debug("call $id fail ${call.request()} $ioe")
+    }
+}
+
+private class TestingDispatcher: QueueDispatcher() {
+    fun queuedCount(): Int {
+        return responseQueue.size
+    }
+    fun clearQueue() {
+        responseQueue.clear()
+    }
+    fun popQueue() : MockResponse {
+        return   responseQueue.take()
     }
 }

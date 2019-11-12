@@ -96,7 +96,6 @@ internal class ApiCallsKtTest {
         val base = server.url("mock")
         val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
-                //  val p = a.getEventPoller(10, 100)
 
         assertEquals(0, disp.queuedCount())
         assertEquals(0, server.requestCount)
