@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 
-version = "0.9.5"
+version = "0.9.6"
 
 plugins {
     id("java")
@@ -57,6 +57,7 @@ compileKotlin.kotlinOptions {
             "-Xuse-experimental=kotlin.contracts.ExperimentalContracts"
             , "-Xuse-experimental=kotlin.time.ExperimentalTime"
             , "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi"
+            , "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
     )
 }
 

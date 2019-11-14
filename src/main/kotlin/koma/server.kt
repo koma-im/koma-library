@@ -13,6 +13,7 @@ import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import koma.util.coroutine.adapter.retrofit.extractMatrix
 import koma.util.flatMap
+import koma.util.given
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -109,6 +110,32 @@ class Server(
         }
     }
 
+    suspend fun getThumbnail(mxc: MHUrl.Mxc
+                             , width: UShort
+                             , height: UShort
+                             , method: ThumbnailMethod? = null
+                             , allowRemote: Boolean? = null
+    ): KResult<ByteArray, KomaFailure> {
+        val (w, h) = when {
+            (width <= 32u && height <= 32u) -> 32u to 32u
+            width <= 96u && height <= 96u -> 96u to 96u
+            width <= 320u && height <= 240u -> 320u to 240u
+            width <=640u && height <=480u -> 640u to 480u
+            else -> 800u to 600u
+        }
+        val m = method ?: if (w < 128u) ThumbnailMethod.Crop else ThumbnailMethod.Scale
+        val u = mediaUrl.newBuilder()
+                .addPathSegment("thumbnail")
+                .addPathSegment(mxc.server)
+                .addPathSegment(mxc.media)
+                .addQueryParameter("width", w.toString())
+                .addQueryParameter("height", h.toString())
+                .addQueryParameter("method", m.toJson())
+                .given(allowRemote) {addQueryParameter("allow_remote", it.toString())}
+                .build()
+        return downloader.downloadMedia(u, Integer.MAX_VALUE)
+    }
+
     /**
      * for downloading resources that are not necessarily on this server
      */
@@ -148,4 +175,14 @@ interface MatrixPublicApi {
     @GET("directory/room/{roomAlias}")
     fun resolveRoomAlias(@Path("roomAlias") roomAlias: String): Call<ResolveRoomAliasResult>
 
+}
+
+enum class ThumbnailMethod {
+    Crop,
+    Scale;
+
+    fun toJson(): String = when(this) {
+        Crop -> "crop"
+        Scale -> "scale"
+    }
 }
