@@ -6,11 +6,13 @@ plugins {
     id("java")
     id("maven")
     id("org.jetbrains.kotlin.jvm") version "1.3.60"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.60"
     id("org.jetbrains.kotlin.kapt") version "1.3.60"
 }
 
 repositories {
     mavenLocal()
+    jcenter()
     maven ("https://dl.bintray.com/jerady/maven")
     maven("https://dl.bintray.com/kittinunf/maven")
     maven("https://jitpack.io")
@@ -35,6 +37,7 @@ dependencies {
     compile("com.squareup.retrofit2:retrofit:2.6.1")
     implementation("com.squareup.retrofit2:converter-moshi:2.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.1")
+    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.14.0")
     implementation("io.github.microutils:kotlin-logging:1.6.22")
     implementation("org.slf4j:slf4j-api:1.8.0-beta2")
     kapt("com.squareup.moshi:moshi-kotlin-codegen:1.8.0")

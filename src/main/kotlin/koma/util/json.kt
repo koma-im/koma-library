@@ -3,6 +3,10 @@ package koma.util
 import koma.matrix.json.MoshiInstance
 import mu.KotlinLogging
 
+import kotlinx.serialization.Serializable
+
+internal typealias KSerializable = Serializable
+
 private val logger = KotlinLogging.logger {}
 
 fun formatJson(input: String): String {

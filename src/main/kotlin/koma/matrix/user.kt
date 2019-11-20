@@ -1,6 +1,7 @@
 package koma.matrix
 
 import koma.matrix.json.NewTypeString
+import koma.util.KSerializable
 
 data class UserId(private val input: String): NewTypeString(input), Comparable<UserId> {
 
