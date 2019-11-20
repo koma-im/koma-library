@@ -1,59 +1,69 @@
 package koma.matrix.event.room_message
 
 import com.squareup.moshi.FromJson
-import com.squareup.moshi.Json
 import com.squareup.moshi.ToJson
+import kotlinx.serialization.SerialName
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+
+@Serializable
 enum class RoomEventType{
-    @Json(name = "m.room.aliases") Aliases,
-    @Json(name = "m.room.canonical_alias") CanonAlias,
-    @Json(name = "m.room.create") Create,
-    @Json(name = "m.room.join_rules") JoinRule,
-    @Json(name = "m.room.power_levels") PowerLevels,
-    @Json(name = "m.room.member") Member,
-    @Json(name = "m.room.message") Message,
-    @Json(name = "m.room.redaction") Redaction,
+    @SerialName( "m.room.aliases") Aliases,
+    @SerialName( "m.room.canonical_alias") CanonAlias,
+    @SerialName( "m.room.create") Create,
+    @SerialName( "m.room.join_rules") JoinRule,
+    @SerialName( "m.room.power_levels") PowerLevels,
+    @SerialName( "m.room.member") Member,
+    @SerialName( "m.room.message") Message,
+    @SerialName( "m.room.redaction") Redaction,
 
-    @Json(name = "m.room.name") Name,
-    @Json(name = "m.room.topic") Topic,
-    @Json(name = "m.room.avatar") Avatar,
-    @Json(name = "pinned-events") PinnedEvents,
-    @Json(name = "m.room.bot.options") BotOptions,
+    @SerialName( "m.room.name") Name,
+    @SerialName( "m.room.topic") Topic,
+    @SerialName( "m.room.avatar") Avatar,
+    PinnedEvents,
+    @SerialName( "m.room.bot.options") BotOptions,
 
-    @Json(name = "m.room.history_visibility") HistoryVisibility,
+    @SerialName( "m.room.history_visibility") HistoryVisibility,
 
-    @Json(name = "m.room.guest_access") GuestAccess;
+    @SerialName( "m.room.guest_access") GuestAccess;
 
     override fun toString(): String {
         return enumToStr(this)
     }
 
     companion object {
-        private val enumStrMap = values().map { it to findJsonAnnotationStr(it) }.toMap()
-        private val strEnumMap = enumStrMap.entries
-                .map { Pair(it.value, it.key) }.toMap()
-        private fun findJsonAnnotationStr(t: RoomEventType): String {
-            val am = RoomEventType::class.java.getField(t.name).getAnnotation(Json::class.java)
-            return am.name
-        }
+        private val json = Json(JsonConfiguration.Stable.copy(unquoted = true))
 
         fun enumToStr(t: RoomEventType): String {
-            return enumStrMap[t] !!
+            val json = json.stringify(RoomEventType.serializer(), t)
+            return json
         }
         fun strToEnum(s: String): RoomEventType? {
-            return strEnumMap[s]
+            return try {
+                json.parse(serializer(), s)
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 }
 
 internal class RoomEventTypeEnumAdapter {
-    @ToJson
-    fun toJson(t: RoomEventType): String {
-        return RoomEventType.enumToStr(t)
+    companion object {
+        private val json = Json(JsonConfiguration.Stable)
     }
+
+    @ToJson
+    fun toJson(t: RoomEventType) = json.stringify(RoomEventType.serializer(), t)
 
     @FromJson
     fun fromJson(str: String): RoomEventType? {
-        return RoomEventType.strToEnum(str)
+        return try {
+            json.parse(RoomEventType.serializer(), str)
+        } catch (e: Exception) {
+            null
+        }
     }
 }

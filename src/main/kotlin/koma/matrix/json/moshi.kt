@@ -4,6 +4,7 @@ import com.squareup.moshi.Moshi
 import koma.InvalidData
 import koma.KomaFailure
 import koma.matrix.NotificationResponse
+import koma.matrix.UserIdAdapter
 import koma.matrix.event.rooRoomEvent.RoomEventAdapterFactory
 import koma.matrix.event.room_message.RoomEvent
 import koma.matrix.event.room_message.RoomEventTypeEnumAdapter
@@ -23,6 +24,7 @@ object MoshiInstance{
             .add(MessageAdapterFactory())
             .add(InviteEventAdapterFactory())
             .add(RoomEventAdapterFactory())
+            .add(UserIdAdapter())
             .add(NewTypeStringAdapterFactory())
             .add(RoomEventTypeEnumAdapter())
             .add(NotificationResponse.EventAdapter())
