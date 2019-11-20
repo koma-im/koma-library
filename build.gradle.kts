@@ -1,14 +1,12 @@
-import org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 
-version = "0.9.6"
+version = "0.9.7"
 
 plugins {
     id("java")
     id("maven")
-    id("org.jetbrains.kotlin.jvm") version "1.3.50"
-    id("org.jetbrains.kotlin.kapt") version "1.3.50"
+    id("org.jetbrains.kotlin.jvm") version "1.3.60"
+    id("org.jetbrains.kotlin.kapt") version "1.3.60"
 }
 
 repositories {
