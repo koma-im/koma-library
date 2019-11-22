@@ -11,8 +11,7 @@ import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.event.room_message.state.RoomAvatarContent
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.event.room_message.state.RoomNameContent
-import koma.matrix.json.MoshiInstance
-import koma.matrix.json.RawJson
+import koma.matrix.json.*
 import koma.matrix.pagination.FetchDirection
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.publicapi.rooms.RoomDirectoryQuery
@@ -152,7 +151,7 @@ interface MatrixAccessApiDef {
     ): Call<NotificationResponse>
 
     @PUT("profile/{userId}/avatar_url")
-    fun updateAvatar(@Path("userId") user_id: UserId,
+    fun updateAvatar(@Path("userId") user_id: String,
                      @Query("access_token") token: String,
                      @Body avatarUrl: AvatarUrl): Call<UpdateAvatarResult>
 
@@ -226,8 +225,11 @@ class MatrixApi internal constructor(
           memId: UserId): KResultF<InviteMemResult> =
             service.inviteUser(room.id, token, InviteUserData(memId)).awaitMatrix()
 
-    suspend fun updateAvatar(user_id: UserId, avatarUrl: AvatarUrl): KResultF<UpdateAvatarResult>
-            = service.updateAvatar(user_id, token, avatarUrl).awaitMatrix()
+    suspend fun updateAvatar(user_id: UserId, avatarUrl: AvatarUrl
+    ): KResultF<UpdateAvatarResult> {
+        val u = user_id.full
+        return service.updateAvatar(u, token, avatarUrl).awaitMatrix()
+    }
 
     suspend fun updateDisplayName(newname: String): KResultF<EmptyResult>
             = service.updateDisplayName(
