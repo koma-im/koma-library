@@ -41,7 +41,6 @@ import java.util.concurrent.atomic.AtomicLong
 import koma.util.KResult
 import koma.util.coroutine.adapter.okhttp.awaitType
 import koma.util.coroutine.withTimeout
-import kotlinx.coroutines.internal.artificialFrame
 import okhttp3.*
 import kotlin.time.Duration
 import kotlin.time.seconds
@@ -70,7 +69,7 @@ interface MatrixAccessApiDef {
             : Call<JoinRoomResult>
 
     @POST("rooms/{roomId}/leave")
-    fun leaveRoom(@Path("roomId") roomId: RoomId,
+    fun leaveRoom(@Path("roomId") roomId: String,
                   @Query("access_token") token: String)
             : Call<LeaveRoomResult>
 
@@ -92,7 +91,7 @@ interface MatrixAccessApiDef {
 
     @GET("rooms/{roomId}/messages")
     fun getMessages(
-            @Path("roomId") roomId: RoomId,
+            @Path("roomId") roomId: String,
             @Query("access_token") token: String,
             @Query("from") from: String,
             @Query("dir") dir: FetchDirection,
@@ -136,8 +135,8 @@ interface MatrixAccessApiDef {
     ): Call<Map<String, Any>>
 
     @GET("rooms/{roomId}/context/{eventId}")
-    fun getEventContext(@Path("roomId") roomId: RoomId,
-                 @Path("eventId") eventId: EventId,
+    fun getEventContext(@Path("roomId") roomId: String,
+                 @Path("eventId") eventId: String,
                         @Query("limit") limit: Int = 2,
                  @Query("access_token") token: String
     ): Call<ContextResponse>
@@ -157,7 +156,7 @@ interface MatrixAccessApiDef {
 
 
     @PUT("profile/{userId}/displayname")
-    fun updateDisplayName(@Path("userId") user_id: UserId,
+    fun updateDisplayName(@Path("userId") user_id: String,
                      @Query("access_token") token: String,
                      @Body body: DisplayName): Call<EmptyResult>
 }
@@ -200,7 +199,7 @@ class MatrixApi internal constructor(
 
     suspend fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null
     ): KResultF<Chunked<RawJson<RoomEvent>>> {
-        return service.getMessages(roomId, token, from, direction, to=to).awaitMatrix()
+        return service.getMessages(roomId.str, token, from, direction, to=to).awaitMatrix()
     }
 
     suspend fun joinRoom(roomid: RoomId): KResultF<JoinRoomResult> {
@@ -208,7 +207,7 @@ class MatrixApi internal constructor(
     }
 
     suspend fun getEventContext(roomid: RoomId, eventId: EventId): KResultF<ContextResponse> {
-        return service.getEventContext(roomid, eventId,token= token).awaitMatrix()
+        return service.getEventContext(roomid.str, eventId.str,token= token).awaitMatrix()
     }
 
     suspend fun uploadFile(file: File, contentType: MediaType): KResultF<UploadResponse> {
@@ -233,7 +232,7 @@ class MatrixApi internal constructor(
 
     suspend fun updateDisplayName(newname: String): KResultF<EmptyResult>
             = service.updateDisplayName(
-            this.userId, token,
+            this.userId.full, token,
             DisplayName(newname)).awaitMatrix()
 
     suspend fun setRoomIcon(roomId: RoomId, content: RoomAvatarContent):KResultF<SendResult>
@@ -245,7 +244,7 @@ class MatrixApi internal constructor(
     ): KResultF<BanRoomResult> = service.banUser(roomid.id, token, MemberBanishment(memId)).awaitMatrix()
 
     suspend fun leavingRoom(roomid: RoomId): KResultF<LeaveRoomResult>
-            = service.leaveRoom(roomid, token).awaitMatrix()
+            = service.leaveRoom(roomid.str, token).awaitMatrix()
 
     suspend fun putRoomAlias(roomid: RoomId, alias: String): KResultF<EmptyResult>
             = service.putRoomAlias(alias, token, RoomInfo(roomid)).awaitMatrix()

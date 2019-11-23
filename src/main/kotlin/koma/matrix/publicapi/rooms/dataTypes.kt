@@ -1,5 +1,8 @@
 package koma.matrix.publicapi.rooms
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 class RoomDirectoryQuery(
         val filter: RoomDirectoryFilter,
         val since: String? = null,
@@ -15,6 +18,7 @@ class RoomDirectoryQuery(
         val limit: Int = 20
 )
 
+@Serializable
 class RoomDirectoryFilter(
         val generic_search_term: String
 )
