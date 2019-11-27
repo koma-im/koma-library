@@ -1,35 +1,33 @@
 package koma
 
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.json.serializer.KotlinxSerializer
+import io.ktor.client.request.get
+import io.ktor.http.ContentType
+import io.ktor.http.URLBuilder
+import io.ktor.http.takeFrom
 import koma.matrix.*
-import koma.matrix.MatrixMediaApiDef
 import koma.matrix.json.MoshiInstance
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.room.naming.ResolveRoomAliasResult
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.media.MHUrl
-import koma.util.KResult
+import koma.util.*
 import koma.util.coroutine.adapter.retrofit.await
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
 import koma.util.coroutine.adapter.retrofit.extractMatrix
-import koma.util.flatMap
-import koma.util.given
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import mu.KotlinLogging
-import okhttp3.*
+import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.net.SocketTimeoutException
-import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,19 +36,37 @@ private val logger = KotlinLogging.logger {}
  */
 class Server(
         val url: HttpUrl,
-        val httpClient: OkHttpClient,
-        apiPath: String = "_matrix/client/r0/",
+        val okHttpClient: OkHttpClient,
+        private val apiPathSegments: Array<String> = arrayOf("_matrix", "client", "r0"),
         mediaPath: String = "_matrix/media/r0/"
 ) {
-    val apiURL = url.newBuilder().addPathSegments(apiPath).build()
+    val apiURL = url.newBuilder().apply {
+        apiPathSegments.dropLast(1).forEach { addPathSegment(it) }
+        addPathSegments(apiPathSegments.last().let { if (!it.endsWith('/')) "$it/" else it })
+    }.build()
     val mediaUrl = url.newBuilder().addPathSegments(mediaPath).build()
+    private val apiUrlKtor = URLBuilder(apiURL.toString()).build()
 
-    private val downloader = Downloader(httpClient)
+    @Deprecated("moving toward multi-platform", ReplaceWith("okHttpClient"))
+    val httpClient
+        get() = okHttpClient
+
+    val ktorHttpClient = HttpClient(OkHttp) {
+        install(JsonFeature) {
+            acceptContentTypes = acceptContentTypes.plus(ContentType.Text.Html)
+            serializer = KotlinxSerializer()
+        }
+        engine {
+            preconfigured = okHttpClient
+        }
+    }
+
+    private val downloader = Downloader(okHttpClient)
 
     private val retrofit = Retrofit.Builder()
             .baseUrl(apiURL)
             .addConverterFactory(MoshiConverterFactory.create(MoshiInstance.moshi))
-            .client(httpClient).build()
+            .client(okHttpClient).build()
 
     val service: MatrixPublicApi = retrofit.create(MatrixPublicApi::class.java)
 
@@ -74,8 +90,18 @@ class Server(
     /**
      * name of a user
      */
-    suspend fun getDisplayName(user: String): KResult<DisplayName, Failure> {
-        return service.getDisplayName(user).await().flatMap { it.extractMatrix() }
+    suspend fun getDisplayNameKtor(userId: UserId): KResult<DisplayName, Failure> {
+        return runCatch {
+            ktorHttpClient.get<DisplayName> {
+                url {
+                    takeFrom(apiUrlKtor)
+                    val p = this@Server.url.pathSegments().toTypedArray()
+                    path(*p, *apiPathSegments, "profile", userId.full, "displayname")
+                }
+            }
+        }.mapFailure {
+            it.toFailure()
+        }
     }
 
     suspend fun resolveRoomAlias(roomAlias: String): KResultF<ResolveRoomAliasResult> {

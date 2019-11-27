@@ -1,18 +1,20 @@
 package koma
 
 import com.squareup.moshi.JsonDataException
+import io.ktor.client.call.NoTransformationFoundException
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
 import koma.util.given
+import kotlinx.serialization.json.JsonDecodingException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import kotlin.time.Duration
 
-open class Failure(val message: String)
+open class Failure(val message: String? = null)
 
 internal typealias KResultF<T> = KResult<T, KomaFailure>
 
-sealed class KomaFailure(message: String): Failure(message) {
+sealed class KomaFailure(message: String?= null): Failure(message) {
     override fun toString() = "KomaFailure($message)"
 }
 
@@ -31,7 +33,7 @@ class Timeout(val duration: Duration? = null
     }.toString()
 }
 
-class InvalidData(message: String): KomaFailure(message) {
+class InvalidData(message: String? = null, val cause: Throwable?=null): KomaFailure(message) {
     override fun toString() = "InvalidData, $message"
 }
 class OtherFailure(message: String): KomaFailure(message) {
@@ -69,7 +71,10 @@ class AuthFailure(val status: Unauthorized, http_code: Int, http_message: String
 fun Throwable.toFailure(): KomaFailure {
     return when (this) {
         is SocketTimeoutException -> Timeout(cause = this)
-        is JsonDataException -> InvalidData("$this")
+        is JsonDataException -> InvalidData("$this", this)
+        is JsonDecodingException -> InvalidData(cause=this)
+        is NoTransformationFoundException -> InvalidData("Reponse may lack correct Content-Type",
+                this)
         is IOException -> IOFailure(this)
         else -> OtherFailure("$this")
     }
