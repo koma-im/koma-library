@@ -9,9 +9,12 @@ import koma.util.testFailure
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.time.delay
 import mu.KotlinLogging
 import java.net.SocketTimeoutException
 import java.time.Instant
+import kotlin.time.MonoClock
+import kotlin.time.milliseconds
 import kotlin.time.seconds
 import koma.util.KResult as Result
 
@@ -56,6 +59,7 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?
         var timeout = 50.seconds
         launch {
             sync@ while (true) {
+                val startTime = MonoClock.markNow()
                 val apiRes = async { client.sync(since, timeout = timeout) }
                 val ss: SyncStatus = select<SyncStatus> {
                     apiRes.onAwait { SyncStatus.Response(it) }
@@ -69,12 +73,13 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?
                             timeout = 50.seconds
                             since = it.next_batch
                         }else {
-                            if (e is Timeout || (e is IOFailure && e.throwable is SocketTimeoutException)) {
-                                logger.warn { "Timeout during sync: $e" }
-                                timeout = 1.seconds
-                            } else {
-                                logger.warn { "Exception during sync: $e" }
-                                delay(10000)
+                            timeout = 1.seconds
+                            logger.warn { "Sync failure: $e" }
+                            val minInterval = 1.seconds // limit rate of retries
+                            val dur= startTime.elapsedNow()
+                            if (dur < minInterval) {
+                                val remaining = minInterval - dur
+                                delay(remaining.toLongMilliseconds())
                             }
                         }
                     }
