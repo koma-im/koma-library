@@ -49,5 +49,3 @@ internal class UserIdAdapter {
     @FromJson
     fun fromJson(json: String) = UserId(json)
 }
-
-internal val userIdAdapter = UserIdAdapter()

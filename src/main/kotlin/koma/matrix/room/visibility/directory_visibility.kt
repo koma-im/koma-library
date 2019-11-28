@@ -4,9 +4,14 @@ import com.squareup.moshi.FromJson
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.ToJson
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class RoomVisibility {
+    @SerialName("public")
     @Json(name = "public") Public,
+    @SerialName( "private")
     @Json(name = "private") Private;
 
     override fun toString(): String {

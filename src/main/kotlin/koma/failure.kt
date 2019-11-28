@@ -6,6 +6,7 @@ import io.ktor.client.features.ClientRequestException
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
 import koma.util.given
+import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.json.JsonDecodingException
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -79,6 +80,7 @@ fun Throwable.toFailure(): KomaFailure {
         is SocketTimeoutException -> Timeout(cause = this)
         is JsonDataException -> InvalidData("$this", this)
         is JsonDecodingException -> InvalidData(cause=this)
+        is MissingFieldException -> InvalidData(cause = this)
         is NoTransformationFoundException -> InvalidData("Reponse may lack correct Content-Type",
                 this)
         is IOException -> IOFailure(this)

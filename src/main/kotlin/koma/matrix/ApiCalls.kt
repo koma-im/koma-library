@@ -4,6 +4,7 @@ import io.ktor.client.request.*
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.takeFrom
+import io.ktor.util.KtorExperimentalAPI
 import koma.*
 import koma.KResultF
 import koma.util.KResult as Result
@@ -65,10 +66,6 @@ class UpdateAvatarResult()
  * retrofit/moshi handles the rest
  */
 interface MatrixAccessApiDef {
-    @POST("createRoom")
-    fun createRoom(@Query("access_token") token: String,
-                   @Body roomSettings: CreateRoomSettings): Call<CreateRoomResult>
-
     @POST("rooms/{roomId}/join")
     fun joinRoom(@Path("roomId") roomId: String,
                  @Query("access_token") token: String)
@@ -172,6 +169,7 @@ internal interface MatrixMediaApiDef {
     ): Call<UploadResponse>
 }
 
+@KtorExperimentalAPI
 class MatrixApi internal constructor(
         private val token: String,
         val userId: UserId,
@@ -189,7 +187,19 @@ class MatrixApi internal constructor(
     }
 
     suspend fun createRoom(settings: CreateRoomSettings): KResultF<CreateRoomResult> {
-        return service.createRoom(token, settings).awaitMatrix()
+        return runCatch {
+            server.ktorHttpClient.post<CreateRoomResult> {
+                contentType(ContentType.Application.Json)
+                url {
+                    takeFrom(server.apiUrlKtor)
+                    path(*server.apiUrlPath, "createRoom")
+                    parameter("access_token", token)
+                }
+                body = settings
+            }
+        }.mapFailure {
+            it.toFailure()
+        }
     }
 
     suspend fun getNotifications(from: String? = null, limit: Int? = null, only: String? = null

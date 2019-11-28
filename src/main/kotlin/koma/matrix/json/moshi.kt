@@ -10,6 +10,8 @@ import koma.matrix.event.room_message.RoomEvent
 import koma.matrix.event.room_message.RoomEventTypeEnumAdapter
 import koma.matrix.event.room_message.chat.MessageAdapterFactory
 import koma.matrix.event.stripped.InviteEventAdapterFactory
+import koma.matrix.room.naming.RoomAliasAdapter
+import koma.matrix.room.naming.RoomIdAdapter
 import koma.toFailure
 import koma.util.*
 import koma.util.coroutine.withTimeout
@@ -26,6 +28,8 @@ object MoshiInstance{
             .add(RoomEventAdapterFactory())
             .add(NewTypeStringAdapterFactory())
             .add(UserIdAdapter())
+            .add(RoomIdAdapter())
+            .add(RoomAliasAdapter())
             .add(RoomEventTypeEnumAdapter())
             .add(NotificationResponse.EventAdapter())
             .add(RawJsonAdapterFactory())

@@ -7,7 +7,9 @@ import koma.matrix.json.jsonDefault
 import koma.matrix.pagination.FetchDirection
 import koma.matrix.publicapi.rooms.RoomDirectoryFilter
 import koma.matrix.publicapi.rooms.RoomDirectoryQuery
+import koma.matrix.room.admin.CreateRoomSettings
 import koma.matrix.room.naming.RoomId
+import koma.matrix.room.visibility.RoomVisibility
 import koma.matrix.user.AvatarUrl
 import koma.network.client.okhttp.KHttpClient
 import koma.network.media.MHUrl
@@ -16,6 +18,7 @@ import koma.util.failureOrThrow
 import koma.util.getOr
 import koma.util.getOrThrow
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.json.JsonDecodingException
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.MockResponse
@@ -235,6 +238,67 @@ internal class MatrixApiTest {
 
     @Test
     fun updateAvatar() {
+    }
+
+    @Test
+    fun createRoom() {
+        val server = MockWebServer()
+        server.start()
+        val base = server.url("mock")
+        val s = Server(base, KHttpClient.client)
+        server.enqueue(MockResponse().setHeader("Content-Type", "application/json"))
+        val token = "secretToken101"
+        val api = s.account(UserId("u"), token)
+        val aliasName = "milano"
+        val settings = CreateRoomSettings(aliasName, RoomVisibility.Private)
+        runBlocking {
+            val n= api.createRoom(settings)
+            assert(n.isFailure)
+            val f = n.failureOrThrow()
+            assertTrue(f is InvalidData) { "fail $f"}
+            assertTrue((f as InvalidData).cause is JsonDecodingException)
+        }
+        val req = server.takeRequest()
+        assertEquals("POST", req.method)
+        val url = req.requestUrl!!
+        assertEquals("createRoom", url.pathSegments[4])
+        assertEquals(token, url.queryParameter("access_token"))
+
+        val body = req.body.readUtf8()
+        assertEquals("""{"room_alias_name":"milano","visibility":"private"}""", body)
+        
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{}""")
+        )
+        val response = runBlocking { api.createRoom(CreateRoomSettings("roomAlias2", RoomVisibility.Public) )}
+        assert(response.isFailure)
+        val f1 = response.failureOrThrow()
+        assert(f1 is InvalidData) { "fail $f1"}
+        assert((f1 as InvalidData).cause is MissingFieldException)
+
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{}""")
+                .setResponseCode(404)
+        )
+        val response1 = runBlocking { api.createRoom(CreateRoomSettings("roomAlias3", RoomVisibility.Private)) }
+        assert(response1.isFailure) { "fail $response1" }
+        val f = response1.failureOrThrow()
+        f as HttpFailure
+        assertEquals(404, f.http_code)
+
+        val createdRoom = "someRoomId0"
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"room_id": "$createdRoom"}""")
+        )
+        val response2 = runBlocking { api.createRoom(CreateRoomSettings("roomAlias2", RoomVisibility.Public) )}
+        assert(response2.isSuccess) { "fail $response2"}
+        val created = response2.getOrThrow()
+        assertEquals(createdRoom, created.room_id.full)
+
+        assertEquals("POST", server.takeRequest().method)
     }
 }
 
