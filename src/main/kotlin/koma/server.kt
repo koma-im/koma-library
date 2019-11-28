@@ -9,8 +9,10 @@ import io.ktor.http.ContentType
 import io.ktor.http.URLBuilder
 import io.ktor.http.Url
 import io.ktor.http.takeFrom
+import io.ktor.util.KtorExperimentalAPI
 import koma.matrix.*
 import koma.matrix.json.MoshiInstance
+import koma.matrix.json.jsonDefault
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.room.naming.ResolveRoomAliasResult
 import koma.matrix.user.AvatarUrl
@@ -35,6 +37,7 @@ private val logger = KotlinLogging.logger {}
 /**
  * a matrix instance
  */
+@KtorExperimentalAPI
 class Server(
         val url: HttpUrl,
         val okHttpClient: OkHttpClient,
@@ -56,7 +59,7 @@ class Server(
     val ktorHttpClient = HttpClient(OkHttp) {
         install(JsonFeature) {
             acceptContentTypes = acceptContentTypes.plus(ContentType.Text.Html)
-            serializer = KotlinxSerializer()
+            serializer = KotlinxSerializer(jsonDefault)
         }
         engine {
             preconfigured = okHttpClient
