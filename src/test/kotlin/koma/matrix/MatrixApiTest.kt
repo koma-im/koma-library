@@ -1,9 +1,7 @@
 package koma.matrix
 
-import koma.Failure
-import koma.IOFailure
-import koma.OtherFailure
-import koma.Server
+import io.ktor.util.KtorExperimentalAPI
+import koma.*
 import koma.matrix.event.room_message.chat.TextMessage
 import koma.matrix.json.jsonDefault
 import koma.matrix.pagination.FetchDirection
@@ -18,6 +16,7 @@ import koma.util.failureOrThrow
 import koma.util.getOr
 import koma.util.getOrThrow
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonDecodingException
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -31,6 +30,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+@KtorExperimentalAPI
 @ExperimentalContracts
 internal class MatrixApiTest {
 
@@ -57,24 +57,57 @@ internal class MatrixApiTest {
         server.start()
         val base = server.url("mock")
         val s = Server(base, KHttpClient.client)
-        server.enqueue(MockResponse())
+        server.enqueue(MockResponse().setHeader("Content-Type", "application/json"))
         val api = s.account(UserId("u"), "token")
         val uid = "@Joe"
         runBlocking {
             val n= api.updateAvatar(UserId(uid), avatarUrl = AvatarUrl("avurl"))
             assert(n.isFailure)
             val f = n.failureOrThrow()
-            assertTrue(f is IOFailure) { "fail $f"}
-            val i = (f as IOFailure)
-            assert(i.throwable is EOFException) //empty response
+            assertTrue(f is InvalidData) { "fail $f"}
+            val i = (f as InvalidData)
+            assert(i.cause is JsonDecodingException)
         }
         val req = server.takeRequest()
         val p = req.path!!
         assert(p.contains(uid))
+        assertEquals("PUT", req.method)
 
         val url = req.requestUrl!!
         val u = url.pathSegments[5]
         assertEquals(uid, u)
+        assertEquals("avatar_url", url.pathSegments[6])
+        assertEquals("token", url.queryParameter("access_token"))
+
+        val body = req.body.readUtf8()
+        assertEquals("""{"avatar_url":"avurl"}""", body)
+
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{}""")
+        )
+        val response = runBlocking { api.updateAvatar(UserId(uid), avatarUrl = AvatarUrl("avurl")) }
+        assert(response.isSuccess)
+        val res: UpdateAvatarResult = response.getOrThrow()
+
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""""")
+        )
+        val res2= runBlocking { api.updateAvatar(UserId(uid), avatarUrl = AvatarUrl("avurl")) }
+        assert(res2.isFailure) { "fail $res2"}
+
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{}""")
+                .setResponseCode(403)
+        )
+        val response1 = runBlocking { api.updateAvatar(UserId(uid), avatarUrl = AvatarUrl("avurl")) }
+        assert(response1.isFailure) { "fail $response1" }
+        val f = response1.failureOrThrow()
+        f as HttpFailure
+        assertEquals(403, f.http_code)
+        assertEquals("PUT", server.takeRequest().method)
     }
 
     @Test

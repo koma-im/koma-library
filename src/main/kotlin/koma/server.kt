@@ -7,6 +7,7 @@ import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
 import io.ktor.http.ContentType
 import io.ktor.http.URLBuilder
+import io.ktor.http.Url
 import io.ktor.http.takeFrom
 import koma.matrix.*
 import koma.matrix.json.MoshiInstance
@@ -37,15 +38,16 @@ private val logger = KotlinLogging.logger {}
 class Server(
         val url: HttpUrl,
         val okHttpClient: OkHttpClient,
-        private val apiPathSegments: Array<String> = arrayOf("_matrix", "client", "r0"),
+        /**
+         * must end with a slash, required by retrofit
+         */
+        apiPath: String = "_matrix/client/r0/",
         mediaPath: String = "_matrix/media/r0/"
 ) {
-    val apiURL = url.newBuilder().apply {
-        apiPathSegments.dropLast(1).forEach { addPathSegment(it) }
-        addPathSegments(apiPathSegments.last().let { if (!it.endsWith('/')) "$it/" else it })
-    }.build()
+    val apiURL = url.newBuilder().addPathSegments(apiPath).build()
     val mediaUrl = url.newBuilder().addPathSegments(mediaPath).build()
-    private val apiUrlKtor = URLBuilder(apiURL.toString()).build()
+    internal val apiUrlPath = apiURL.pathSegments().filterNot { it.isEmpty() }.toTypedArray()
+    internal val apiUrlKtor = URLBuilder(apiURL.toString()).build()
 
     @Deprecated("moving toward multi-platform", ReplaceWith("okHttpClient"))
     val httpClient
@@ -95,8 +97,7 @@ class Server(
             ktorHttpClient.get<DisplayName> {
                 url {
                     takeFrom(apiUrlKtor)
-                    val p = this@Server.url.pathSegments().toTypedArray()
-                    path(*p, *apiPathSegments, "profile", userId.full, "displayname")
+                    path(*apiUrlPath, "profile", userId.full, "displayname")
                 }
             }
         }.mapFailure {

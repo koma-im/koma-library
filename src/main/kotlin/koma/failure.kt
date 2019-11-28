@@ -2,6 +2,7 @@ package koma
 
 import com.squareup.moshi.JsonDataException
 import io.ktor.client.call.NoTransformationFoundException
+import io.ktor.client.features.ClientRequestException
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
 import koma.util.given
@@ -34,14 +35,19 @@ class Timeout(val duration: Duration? = null
 }
 
 class InvalidData(message: String? = null, val cause: Throwable?=null): KomaFailure(message) {
-    override fun toString() = "InvalidData, $message"
+    override fun toString() = buildString {
+        append("InvalidData")
+        given(message) { append(", $it")}
+        given(cause) { append(", caused by $cause")}
+    }
 }
 class OtherFailure(message: String): KomaFailure(message) {
     override fun toString() = "OtherFailure, $message"
 }
 
 open class HttpFailure(val http_code: Int,
-                     val http_message: String
+                     val http_message: String,
+                       val cause: Throwable?=null
 ): KomaFailure("HTTP $http_code $http_message") {
     override fun toString(): String {
         Result
@@ -76,6 +82,10 @@ fun Throwable.toFailure(): KomaFailure {
         is NoTransformationFoundException -> InvalidData("Reponse may lack correct Content-Type",
                 this)
         is IOException -> IOFailure(this)
+        is ClientRequestException -> {
+            val response = this.response
+            HttpFailure(response.status.value, response.status.description, this)
+        }
         else -> OtherFailure("$this")
     }
 }

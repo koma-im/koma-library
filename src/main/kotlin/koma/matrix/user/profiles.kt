@@ -1,8 +1,8 @@
 package koma.matrix.user
 
-import koma.util.KSerializable
+import kotlinx.serialization.Serializable
 
-@KSerializable
+@Serializable
 data class AvatarUrl(
         val avatar_url: String?
 )

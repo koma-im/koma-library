@@ -1,5 +1,9 @@
 package koma.matrix
 
+import io.ktor.client.request.*
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.http.takeFrom
 import koma.*
 import koma.KResultF
 import koma.util.KResult as Result
@@ -41,6 +45,7 @@ import java.util.concurrent.atomic.AtomicLong
 import koma.util.KResult
 import koma.util.coroutine.adapter.okhttp.awaitType
 import koma.util.coroutine.withTimeout
+import kotlinx.serialization.Serializable
 import okhttp3.*
 import kotlin.time.Duration
 import kotlin.time.seconds
@@ -51,6 +56,7 @@ data class SendResult(
         val event_id: EventId
 )
 
+@Serializable
 class UpdateAvatarResult()
 
 /**
@@ -149,12 +155,6 @@ interface MatrixAccessApiDef {
             @Query("only") only: String? = null
     ): Call<NotificationResponse>
 
-    @PUT("profile/{userId}/avatar_url")
-    fun updateAvatar(@Path("userId") user_id: String,
-                     @Query("access_token") token: String,
-                     @Body avatarUrl: AvatarUrl): Call<UpdateAvatarResult>
-
-
     @PUT("profile/{userId}/displayname")
     fun updateDisplayName(@Path("userId") user_id: String,
                      @Query("access_token") token: String,
@@ -227,7 +227,19 @@ class MatrixApi internal constructor(
     suspend fun updateAvatar(user_id: UserId, avatarUrl: AvatarUrl
     ): KResultF<UpdateAvatarResult> {
         val u = user_id.full
-        return service.updateAvatar(u, token, avatarUrl).awaitMatrix()
+        return runCatch {
+            server.ktorHttpClient.put<UpdateAvatarResult> {
+                contentType(ContentType.Application.Json)
+                url {
+                    takeFrom(server.apiUrlKtor)
+                    path(*server.apiUrlPath, "profile", u, "avatar_url")
+                    parameter("access_token", token)
+                }
+                body = avatarUrl
+            }
+        }.mapFailure {
+            it.toFailure()
+        }
     }
 
     suspend fun updateDisplayName(newname: String): KResultF<EmptyResult>
