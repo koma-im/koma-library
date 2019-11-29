@@ -26,9 +26,9 @@ fun M_Message.getMsgType(): String? {
 
 class TextMessage(
         body: String,
-        formatted_body: String?=null,
+        val formatted_body: String?=null,
         val msgtype: String = "m.text",
-        format: String?=null
+        val format: String?=null
 ): M_Message(body)
 
 class EmoteMessage(
