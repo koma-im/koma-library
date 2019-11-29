@@ -4,7 +4,6 @@ import io.ktor.client.request.*
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.takeFrom
-import io.ktor.util.KtorExperimentalAPI
 import koma.*
 import koma.KResultF
 import koma.util.KResult as Result
@@ -169,7 +168,6 @@ internal interface MatrixMediaApiDef {
     ): Call<UploadResponse>
 }
 
-@KtorExperimentalAPI
 class MatrixApi internal constructor(
         private val token: String,
         val userId: UserId,

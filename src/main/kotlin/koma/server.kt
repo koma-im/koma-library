@@ -1,3 +1,5 @@
+@file:Suppress("EXPERIMENTAL_API_USAGE")
+
 package koma
 
 import io.ktor.client.HttpClient
@@ -7,9 +9,7 @@ import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
 import io.ktor.http.ContentType
 import io.ktor.http.URLBuilder
-import io.ktor.http.Url
 import io.ktor.http.takeFrom
-import io.ktor.util.KtorExperimentalAPI
 import koma.matrix.*
 import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault
@@ -18,10 +18,11 @@ import koma.matrix.room.naming.ResolveRoomAliasResult
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.media.MHUrl
-import koma.util.*
-import koma.util.coroutine.adapter.retrofit.await
+import koma.util.KResult
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma.util.coroutine.adapter.retrofit.extractMatrix
+import koma.util.given
+import koma.util.mapFailure
+import koma.util.runCatch
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -37,7 +38,6 @@ private val logger = KotlinLogging.logger {}
 /**
  * a matrix instance
  */
-@KtorExperimentalAPI
 class Server(
         val url: HttpUrl,
         val okHttpClient: OkHttpClient,
