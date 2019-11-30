@@ -6,6 +6,7 @@ import koma.matrix.event.room_message.RoomEventType
 import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.json.MoshiInstance
 import koma.matrix.room.naming.RoomId
+import kotlinx.serialization.Serializable
 
 data class NotificationResponse(
         val next_token: String?,

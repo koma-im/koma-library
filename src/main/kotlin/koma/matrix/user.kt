@@ -2,7 +2,6 @@ package koma.matrix
 
 import com.squareup.moshi.FromJson
 import com.squareup.moshi.ToJson
-import koma.matrix.json.NewTypeString
 import koma.util.KSerializable
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor

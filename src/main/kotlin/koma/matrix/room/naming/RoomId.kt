@@ -2,17 +2,8 @@ package koma.matrix.room.naming
 
 import com.squareup.moshi.FromJson
 import com.squareup.moshi.ToJson
-import koma.matrix.UserId
-import koma.matrix.json.NewTypeString
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
-
-fun canBeValidRoomId(input: String): Boolean {
-    val ss = input.split(':')
-    if (ss.size != 2) return false
-    return ss[0].startsWith('!') && ss[1].isNotEmpty()
-}
-
 
 @Serializable
 data class RoomId(val full: String): Comparable<RoomId> {

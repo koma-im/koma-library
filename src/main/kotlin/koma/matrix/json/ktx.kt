@@ -8,11 +8,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.stringify
 
-private val jsonConf = JsonConfiguration.Stable.copy(
+internal val jsonDefaultConf = JsonConfiguration.Stable.copy(
         strictMode = false // allow unknown keys
 )
 
-internal val jsonDefault = Json(jsonConf)
+internal val jsonDefault = Json(jsonDefaultConf)
 
 
 fun <T> Json.stringifyResult(s: SerializationStrategy<T>, obj: T): KResult<String, KomaFailure> {

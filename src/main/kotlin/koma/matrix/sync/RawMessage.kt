@@ -2,8 +2,8 @@ package koma.matrix.sync
 
 import com.squareup.moshi.Moshi
 import koma.matrix.UserId
-import koma.matrix.json.NewTypeStringAdapterFactory
 import koma.matrix.event.room_message.RoomEventType
+import koma.matrix.json.MoshiInstance
 
 /**
  * message received as a dict from the server
@@ -19,7 +19,7 @@ data class RawMessage(
         val txn_id: String?,
         val content: Map<String, Any>) {
     companion object {
-        private val adapter = Moshi.Builder().add(NewTypeStringAdapterFactory()).build().adapter(RawMessage::class.java)
+        private val adapter = MoshiInstance.moshi.adapter<RawMessage>(RawMessage::class.java)
     }
 
     /**

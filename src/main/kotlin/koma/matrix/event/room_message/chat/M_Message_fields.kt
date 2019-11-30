@@ -1,11 +1,14 @@
 package koma.matrix.event.room_message.chat
 
+import kotlinx.serialization.Serializable
 
+@Serializable
 class LocationInfo(
         val thumbnail_url: String?,
         val thumbnail_info: ThumbnailInfo?
 )
 
+@Serializable
 class ImageInfo(
         val h:Int,
         val w: Int,
@@ -15,12 +18,14 @@ class ImageInfo(
         val thumbnail_info: ThumbnailInfo?
 )
 
+@Serializable
 class AudioInfo(
         val duration: Int?,
         val mimetype: String,
         val size: Int
 )
 
+@Serializable
 class VideoInfo(
         val h:Int,
         val w: Int,
@@ -31,6 +36,7 @@ class VideoInfo(
         val thumbnail_info: ThumbnailInfo?
 )
 
+@Serializable
 class FileInfo(
         val mimetype: String,
         val size: Long,
@@ -38,6 +44,7 @@ class FileInfo(
         val thumbnail_info: ThumbnailInfo?=null
 )
 
+@Serializable
 class ThumbnailInfo(
         val h: Int,
         val w: Int,
