@@ -32,7 +32,6 @@ object MoshiInstance{
             .add(RoomAliasAdapter())
             .add(EventIdAdapter())
             .add(RoomEventTypeEnumAdapter())
-            .add(NotificationResponse.EventAdapter())
             .add(RawJsonAdapterFactory())
     val moshi = moshiBuilder.build()
     val mapAdapter = moshi.adapter(Map::class.java)

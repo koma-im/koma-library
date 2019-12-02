@@ -1,20 +1,127 @@
 package koma.matrix
 
 import koma.matrix.json.MoshiInstance
+import koma.matrix.json.jsonDefault
+import kotlinx.serialization.json.content
 import org.junit.Test
 import java.io.File
+import kotlin.test.assertEquals
 
 internal class NotificationResponseTest {
     @Test
-    fun t2() {
-        val a = MoshiInstance.moshi.adapter<NotificationResponse>(NotificationResponse::class.java)
-        val n0 = a.fromJson(example1)
-        val ai = a.indent("    ")
-        val j = ai.toJson(n0)
+    fun deserializeNotificationResponse() {
+        val notification1 = jsonDefault.parse(NotificationResponse.serializer(), example1)
+        assertEquals("abcdef", notification1.next_token)
+        assertEquals(1, notification1.notifications.size)
+        val notif1 = notification1.notifications[0]
+        assertEquals(1, notif1.actions.size)
+        val action = notif1.actions[0]
+        assertEquals("notify", action.content)
+        assertEquals("hcbvkzxhcvb", notif1.profile_tag)
+        assert(notif1.read)
+        assertEquals(1475508881945, notif1.ts)
+        assertEquals("""$143273582443PhrSn:example.org""", notif1.event.event_id.full)
 
-        val n1 = a.fromJson(exampl2)
+        val notifRes2 = jsonDefault.parse(NotificationResponse.serializer(), exampl2)
+        assertEquals("1000116789", notifRes2.next_token)
     }
 
+    @Test
+    fun deserializeNotification() {
+        jsonDefault.parse(NotificationResponse.Notification.serializer(), notificationString1)
+        val notif2 = jsonDefault.parse(NotificationResponse.Notification.serializer(), notificationString2)
+        assertEquals("!room2:example.com", notif2.room_id.full)
+        val event = notif2.event
+        assertEquals( "$156141234550951DWylX:example.com", notif2.event.event_id.full)
+        val unsigned = event.unsigned
+        assertEquals(51106879, unsigned?.age)
+        val prevEvent = unsigned?.prev_content
+        assert(prevEvent is NotificationResponse.Event)
+        prevEvent as NotificationResponse.Event
+        assertEquals("$123prev:example.com", prevEvent.event_id.full)
+    }
+    val notificationString2 = """
+        {
+              "room_id": "!room2:example.com",
+              "profile_tag": null,
+              "actions": [
+                "notify"
+              ],
+              "ts": 1561412345098,
+              "event": {
+                "content": {
+                  "body": "hi",
+                  "msgtype": "m.text"
+                },
+                "event_id": "$156141234550951DWylX:example.com",
+                "origin_server_ts": 1561412345681,
+                "sender": "@ena:example.com",
+                "type": "m.room.message",
+                "unsigned": {
+                  "age": 51106879,
+                  "prev_content": {
+                        "content": {
+                          "body": "prevhi",
+                          "msgtype": "m.text"
+                        },
+                        "event_id": "$123prev:example.com",
+                        "origin_server_ts": 1561234,
+                        "sender": "@prec:example.com",
+                        "type": "m.room.message",
+                        "unsigned": {
+                          "age": 51
+                        }
+                  }
+                }
+              },
+              "read": true
+            }
+    """
+
+    val notificationString1 = """
+        {
+              "room_id": "!roomxyz:example.com",
+              "profile_tag": null,
+              "actions": [
+                "notify",
+                {
+                  "set_tweak": "highlight",
+                  "value": true
+                }
+              ],
+              "ts": 1561412345098,
+              "event": {
+                "content": {
+                  "body": "hi",
+                  "msgtype": "m.text"
+                },
+                "event_id": "        ${'$'}        156141234550951DWylX:example.com",
+                "origin_server_ts": 1561412345681,
+                "sender": "@ena:example.com",
+                "type": "m.room.message",
+                "unsigned": {
+                  "age": 51106879,
+                  "m.relations": {
+                    "m.annotation": {
+                      "chunk": [
+                        {
+                          "type": "m.reaction",
+                          "key": "\ud84d\ude80",
+                          "count": 1
+                        },
+                        {
+                          "type": "m.reaction",
+                          "key": "\ud84c\uddeb\ud84c\uddee",
+                          "count": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "read": true
+            }
+    """.trimIndent()
     val example1 = """
         {
   "next_token": "abcdef",
@@ -51,48 +158,6 @@ internal class NotificationResponseTest {
     val exampl2 = """
         {
   "notifications": [
-    {
-      "room_id": "!roomxyz:example.com",
-      "profile_tag": null,
-      "actions": [
-        "notify",
-        {
-          "set_tweak": "highlight",
-          "value": true
-        }
-      ],
-      "ts": 1561412345098,
-      "event": {
-        "content": {
-          "body": "hi",
-          "msgtype": "m.text"
-        },
-        "event_id": "${'$'}156141234550951DWylX:example.com",
-        "origin_server_ts": 1561412345681,
-        "sender": "@ena:example.com",
-        "type": "m.room.message",
-        "unsigned": {
-          "age": 51106879,
-          "m.relations": {
-            "m.annotation": {
-              "chunk": [
-                {
-                  "type": "m.reaction",
-                  "key": "\ud84d\ude80",
-                  "count": 1
-                },
-                {
-                  "type": "m.reaction",
-                  "key": "\ud84c\uddeb\ud84c\uddee",
-                  "count": 1
-                }
-              ]
-            }
-          }
-        }
-      },
-      "read": true
-    },
     {
       "room_id": "!roomxyz:example.com",
       "profile_tag": null,

@@ -1,96 +1,128 @@
 package koma.matrix
 
-import com.squareup.moshi.*
 import koma.matrix.event.EventId
 import koma.matrix.event.room_message.RoomEventType
 import koma.matrix.event.room_message.chat.M_Message
-import koma.matrix.json.MoshiInstance
 import koma.matrix.room.naming.RoomId
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
+import kotlinx.serialization.internal.StringDescriptor
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonInput
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonOutput
 
+@Serializable
 data class NotificationResponse(
-        val next_token: String?,
+        val next_token: String? = null,
         val notifications: List<Notification>
 ) {
 
+    @Serializable
     data class Notification(
-            val actions: List<Any>,
-            val event: Event<Content>,
-            val profile_tag: String,
+            val actions: List<JsonElement>,
+            val event: Event,
+            val profile_tag: String? = null,
             val read: Boolean,
             val room_id: RoomId,
             val ts: Long
     ) {
     }
 
-    data class Event<T>(
+    @Serializable
+    class Event(
             val event_id: EventId,
             val origin_server_ts: Long,
-            val prev_content: Map<String, Any>?,
+            val prev_content: JsonObject?= null,
             val sender: UserId,
-            val state_key: String?,
-            /**
-             * null when the type isn't supported yet
-             */
-            val type: RoomEventType?,
-            val content: T,
-            val unsigned: Unsigned?
+            val state_key: String? = null,
+            val type: RoomEventType,
+            val content: Content,
+            val unsigned: Unsigned? = null
     ) {
+        @Serializer(forClass = Event::class)
+        companion object : KSerializer<Event> {
+            override val descriptor: SerialDescriptor =
+                    StringDescriptor.withName("Event")
+
+            override fun serialize(encoder: Encoder, obj: Event) {
+                val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
+                val contentObject = obj.content.toJson(output)
+                val pri = PrimevalEvent.copyFrom(obj, contentObject)
+                output.encode(PrimevalEvent.serializer(), pri)
+            }
+
+            override fun deserialize(decoder: Decoder): Event {
+                val input = decoder as? JsonInput ?: throw SerializationException("This class can be loaded only by Json")
+                val pri = input.decode(PrimevalEvent.serializer())
+                val content = Content.fromJson(input, pri.type, pri.content)
+                return copyFrom(pri, content)
+            }
+
+            private fun copyFrom(other: PrimevalEvent, content: Content) = Event(
+                    event_id = other.event_id,
+                    origin_server_ts = other.origin_server_ts,
+                    prev_content = other.prev_content,
+                    sender = other.sender,
+                    state_key = other.state_key,
+                    type = other.type,
+                    content = content,
+                    unsigned = other.unsigned
+            )
+        }
     }
 
+    @Serializable
+    internal class PrimevalEvent(
+            val event_id: EventId,
+            val origin_server_ts: Long,
+            val prev_content: JsonObject?= null,
+            val sender: UserId,
+            val state_key: String?=null,
+            val type: RoomEventType,
+            val content: JsonObject,
+            val unsigned: Unsigned? = null
+    ) {
+        companion object {
+            internal fun copyFrom(other: Event, content: JsonObject) = PrimevalEvent(
+                    event_id = other.event_id,
+                    origin_server_ts = other.origin_server_ts,
+                    prev_content = other.prev_content,
+                    sender = other.sender,
+                    state_key = other.state_key,
+                    type = other.type,
+                    content = content,
+                    unsigned = other.unsigned
+            )
+        }
+    }
+
+    @Serializable
     data class Unsigned(
             val age: Long,
-            val prev_content: Event<Content>,
-            val transaction_id: String?,
-            val redacted_because: Event<Content>
+            val prev_content: Event? = null,
+            val transaction_id: String? = null,
+            val redacted_because: Event? = null
     )
 
     sealed class Content {
         data class Message(val message: M_Message): Content()
-        data class Other(val map: Map<String, Any>): Content()
+        data class Other(val map: JsonObject): Content()
+        internal fun toJson(output: JsonOutput): JsonObject {
+            return when (this) {
+                is Message -> output.json.toJson(M_Message.serializer(), this.message) as JsonObject
+                is Other -> this.map
+            }
+        }
         companion object {
-            private val messageAdapter = MoshiInstance.moshi.adapter<M_Message>(M_Message::class.java)
-            internal fun fromMap(type: RoomEventType?, map: Map<String, Any>): Content? {
+            internal fun fromJson(input: JsonInput, type: RoomEventType?, map: JsonObject): Content {
                 return when (type) {
                     RoomEventType.Message -> {
-                        val m = messageAdapter.fromJsonValue(map) ?: return null
+                        val m = input.json.fromJson(M_Message.serializer(), map)
                         Message(m)
                     }
                     else -> Other(map)
                 }
             }
-            internal fun toMap(content: Content): Map<String, Any> = when(content) {
-                is Message -> messageAdapter.toJsonValue(content.message) as Map<String, Any>
-                is Other -> content.map
-            }
-        }
-    }
-
-    internal class EventAdapter {
-        @ToJson
-        fun toJson(value: Event<Content>): Event<Map<String, Any>> {
-            val c = Content.toMap(value.content)
-            return Event(event_id = value.event_id,
-                    origin_server_ts = value.origin_server_ts,
-                    prev_content = value.prev_content,
-                    sender = value.sender,
-                    type = value.type,
-                    content = c,
-                    state_key = value.state_key,
-                    unsigned = value.unsigned
-            )
-        }
-        @FromJson
-        fun fromJson(json: Event<Map<String, Any>>): Event<Content>? {
-            val c = Content.fromMap(json.type, json.content) ?: return null
-            return Event(event_id = json.event_id,
-                    origin_server_ts = json.origin_server_ts,
-                    prev_content = json.prev_content,
-                    sender = json.sender,
-                    type = json.type,
-                    content = c,
-                    state_key = json.state_key,
-                    unsigned = json.unsigned)
         }
     }
 }

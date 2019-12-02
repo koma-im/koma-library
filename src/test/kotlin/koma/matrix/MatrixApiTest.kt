@@ -37,6 +37,7 @@ import kotlin.contracts.contract
 @ExperimentalContracts
 internal class MatrixApiTest {
 
+    private val fastClient =  KHttpClient.client.newBuilder().readTimeout(1, TimeUnit.SECONDS).build()
     @Test
     fun getRoomName() {
         val server = MockWebServer()
@@ -300,6 +301,64 @@ internal class MatrixApiTest {
 
         assertEquals("POST", server.takeRequest().method)
     }
+
+    @Test
+    fun getNotifications() {
+        val server = MockWebServer()
+        server.start()
+        val base = server.url("v100")
+        val s = Server(base, fastClient)
+        server.enqueue(MockResponse().setHeader("Content-Type", "application/json")
+                .setBody(notificationResponse1)
+        )
+        val api = s.account(UserId("u1"), "secrettoken1")
+        val n = runBlocking { api.getNotifications("from1", limit = 7, only = "filter1") }
+        val req = server.takeRequest()
+        val url = req.requestUrl!!
+        assertEquals("/v100/_matrix/client/r0/notifications", url.encodedPath)
+        assertEquals("secrettoken1", url.queryParameter("access_token"))
+        assertEquals("from1", url.queryParameter("from"))
+        assertEquals("filter1", url.queryParameter("only"))
+        assertEquals("7", url.queryParameter("limit"))
+        assert(n.isSuccess) { "expected $n"}
+        val notification1 = n.getOrThrow()
+        assertEquals("abcdef", notification1.next_token)
+        assertEquals(1, notification1.notifications.size)
+        assertEquals("hcbvkzxhcvb", notification1.notifications[0].profile_tag)
+    }
+
+    val notificationResponse1 = """
+        {
+  "next_token": "abcdef",
+  "notifications": [
+    {
+      "actions": [
+        "notify"
+      ],
+      "profile_tag": "hcbvkzxhcvb",
+      "read": true,
+      "room_id": "!abcdefg:example.com",
+      "ts": 1475508881945,
+      "event": {
+        "content": {
+          "body": "This is an example text message",
+          "msgtype": "m.text",
+          "format": "org.matrix.custom.html",
+          "formatted_body": "<b>This is an example text message</b>"
+        },
+        "type": "m.room.message",
+        "event_id": "${'$'}143273582443PhrSn:example.org",
+        "room_id": "!jEsUZKDJdhlrceRyVU:example.org",
+        "sender": "@example:example.org",
+        "origin_server_ts": 1432735824653,
+        "unsigned": {
+          "age": 1234
+        }
+      }
+    }
+  ]
+}
+    """
 }
 
 @ExperimentalContracts

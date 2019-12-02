@@ -143,14 +143,6 @@ interface MatrixAccessApiDef {
                  @Query("access_token") token: String
     ): Call<ContextResponse>
 
-    @GET("notifications")
-    fun getNotifications(
-            @Query("access_token") token: String,
-            @Query("from") from: String? = null,
-            @Query("limit") limit: Int? = null,
-            @Query("only") only: String? = null
-    ): Call<NotificationResponse>
-
     @PUT("profile/{userId}/displayname")
     fun updateDisplayName(@Path("userId") user_id: String,
                      @Query("access_token") token: String,
@@ -202,7 +194,20 @@ class MatrixApi internal constructor(
 
     suspend fun getNotifications(from: String? = null, limit: Int? = null, only: String? = null
     ): KResultF<NotificationResponse> {
-        return service.getNotifications(token, from, limit, only).awaitMatrix()
+        return runCatch {
+            server.ktorHttpClient.get<NotificationResponse> {
+                url {
+                    takeFrom(server.apiUrlKtor)
+                    path(*server.apiUrlPath,  "notifications")
+                    parameter("access_token", token)
+                    parameter("from", from)
+                    parameter("limit", limit)
+                    parameter("only", only)
+                }
+            }
+        }.mapFailure {
+            it.toFailure()
+        }
     }
 
     suspend fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null
