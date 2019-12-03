@@ -4,6 +4,7 @@ package koma.matrix.room
 import com.squareup.moshi.Types
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.json.MoshiInstance
+import koma.matrix.json.jsonDefault
 import koma.matrix.sync.Events
 import kotlin.test.Test
 
@@ -57,8 +58,7 @@ internal class InvitationDeserialization {
                 "alias": "#welc2:club"
               }
         """.trimIndent()
-        val adapter1 = MoshiInstance.moshi.adapter(RoomCanonAliasContent::class.java)
-        val data1 = adapter1.fromJson(aliasJson)
+        val data1 = jsonDefault.parse(RoomCanonAliasContent.serializer(), aliasJson)
         assert(data1 is RoomCanonAliasContent)
 
         val state = """

@@ -52,10 +52,11 @@ class ThumbnailInfo(
         val size: Int
 )
 
+@Serializable
 class MessageUnsigned(
         /**
          * not used and it keeps changing
          */
         //val age: Int?,
-        val transactionId: String?
+        val transactionId: String? = null
 )

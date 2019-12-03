@@ -6,12 +6,14 @@ import koma.matrix.event.room_message.chat.ImageInfo
 import koma.matrix.room.naming.RoomAlias
 import koma.matrix.room.participation.RoomJoinRules
 import koma.matrix.room.visibility.HistoryVisibility
+import kotlinx.serialization.Serializable
 
 
 class RoomAliasesContent(
         val aliases: List<RoomAlias>
 )
 
+@Serializable
 data class RoomCanonAliasContent(
         // empty when it's a delete event
         val alias: RoomAlias?

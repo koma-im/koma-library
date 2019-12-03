@@ -1,6 +1,8 @@
 package koma.matrix.json
 
+import com.squareup.moshi.FromJson
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.ToJson
 import koma.InvalidData
 import koma.KomaFailure
 import koma.matrix.NotificationResponse
@@ -18,6 +20,7 @@ import koma.util.*
 import koma.util.coroutine.withTimeout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonElement
 import okio.BufferedSource
 import kotlin.time.Duration
 import kotlin.time.seconds
@@ -32,6 +35,7 @@ object MoshiInstance{
             .add(RoomAliasAdapter())
             .add(EventIdAdapter())
             .add(RoomEventTypeEnumAdapter())
+            .add(JsonElementAdapter())
             .add(RawJsonAdapterFactory())
     val moshi = moshiBuilder.build()
     val mapAdapter = moshi.adapter(Map::class.java)
@@ -41,6 +45,17 @@ object MoshiInstance{
     }
 }
 
+private class JsonElementAdapter {
+    @ToJson
+    fun elementToJson(value: JsonElement): String {
+        return value.toString()
+    }
+
+    @FromJson
+    fun fromJson(json: String): JsonElement {
+        return jsonDefault.parseJson(json)
+    }
+}
 inline fun<reified T: Any> deserialize(json: String): KResult<T, KomaFailure> {
     val adapter = MoshiInstance.moshi.adapter(T::class.java)
     return runCatch {
