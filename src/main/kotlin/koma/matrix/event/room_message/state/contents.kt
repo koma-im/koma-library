@@ -16,7 +16,7 @@ class RoomAliasesContent(
 @Serializable
 data class RoomCanonAliasContent(
         // empty when it's a delete event
-        val alias: RoomAlias?
+        val alias: RoomAlias? = null
 )
 
 class RoomHistoryVisibilityContent(
