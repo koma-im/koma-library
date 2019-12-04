@@ -4,11 +4,18 @@ import com.squareup.moshi.FromJson
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.ToJson
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class HistoryVisibility {
+    @SerialName("invited")
     @Json(name = "invited") Invited,
+    @SerialName( "joined")
     @Json(name = "joined") Joined,
+    @SerialName("shared")
     @Json(name = "shared") Shared,
+    @SerialName("world_readable")
     @Json(name = "world_readable") WorldReadable;
 
     companion object {

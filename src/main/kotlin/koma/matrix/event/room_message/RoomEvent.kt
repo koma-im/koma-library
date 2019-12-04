@@ -4,16 +4,22 @@ import koma.matrix.UserId
 import koma.matrix.event.EventId
 import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.event.room_message.chat.MessageUnsigned
-import koma.matrix.event.room_message.state.RoomRedactContent
-import koma.matrix.json.MoshiInstance
+import koma.matrix.event.room_message.state.*
+import koma.matrix.event.room_message.state.member.PrevContent
+import koma.matrix.event.room_message.state.member.RoomMemberContent
+import koma.matrix.event.room_message.state.member.RoomMemberUnsigned
+import koma.matrix.event.room_message.state.member.StrippedState
 import koma.matrix.room.naming.RoomId
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
+import kotlinx.serialization.internal.StringDescriptor
+import kotlinx.serialization.json.JsonInput
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonOutput
 
 // try to make moshi return different kind of objects depending on a key
 
-abstract class RoomEvent(
-): Comparable<RoomEvent>{
+@Serializable(with = RoomEventSerializer::class)
+sealed class RoomEvent: Comparable<RoomEvent>{
     abstract val event_id: EventId
     abstract val origin_server_ts: Long
     abstract val type: RoomEventType
@@ -29,9 +35,6 @@ abstract class RoomEvent(
     }
 
     override fun hashCode() = this.event_id.hashCode()
-
-    companion object {
-    }
 }
 
 @Serializable
@@ -54,27 +57,29 @@ class MRoomMessage(
     }
 }
 
+@Serializable
 class MRoomRedaction(
         //val age: Long?,
         override val event_id: EventId,
         override val origin_server_ts: Long,
-        val prev_content: Map<String, Any>?,
+        val prev_content: JsonObject? = null,
         val sender: UserId,
-        val state_key: String?,
+        val state_key: String? = null,
         val redacts: String,
         val content: RoomRedactContent,
         override val type: RoomEventType = RoomEventType.Redaction
 ): RoomEvent()
 
+@Serializable
 class MRoomUnrecognized(
         //val age: Long?,
         override val event_id: EventId,
         override val origin_server_ts: Long,
-        val prev_content: Map<String, Any>?,
-        val sender: UserId?,
-        val state_key: String?,
-        val unsigned: MessageUnsigned?,
-        val content: Map<String, Any>?,
+        val prev_content: JsonObject? = null,
+        val sender: UserId? = null,
+        val state_key: String? = null,
+        val unsigned: MessageUnsigned? = null,
+        val content: JsonObject? = null,
         override val type: RoomEventType = RoomEventType.Unknown
 ): RoomEvent() {
     override fun toString(): String {
@@ -82,3 +87,228 @@ class MRoomUnrecognized(
     }
 }
 
+
+sealed class RoomStateEvent: RoomEvent() {
+    abstract override val event_id: EventId
+    abstract override val origin_server_ts: Long
+    abstract override val type: RoomEventType
+}
+
+@Serializable
+class MRoomAliases(
+        //val age: Long?,
+        override val origin_server_ts: Long,
+        override val event_id: EventId,
+        val prev_content: JsonObject? = null,
+        val sender: UserId,
+        val state_key: String,
+        val content: RoomAliasesContent,
+        override val type: RoomEventType = RoomEventType.Aliases
+): RoomStateEvent()
+
+@Serializable
+class MRoomCanonAlias(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject? = null,
+        val sender: UserId,
+        val state_key: String? = null,
+        val txn_id: String? = null,
+        val content: RoomCanonAliasContent,
+        override val type: RoomEventType = RoomEventType.CanonAlias
+): RoomStateEvent()
+
+@Serializable
+class MRoomCreate(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject? = null,
+        val sender: UserId,
+        val state_key: String? = null,
+        val txn_id: String? = null,
+        val content: RoomCreateContent,
+        override val type: RoomEventType = RoomEventType.Create
+): RoomStateEvent()
+
+@Serializable
+class MRoomJoinRule(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject? = null,
+        val sender: UserId,
+        val state_key: String? = null,
+        val txn_id: String? = null,
+        val content: RoomJoinRulesContent,
+        override val type: RoomEventType = RoomEventType.JoinRule
+): RoomStateEvent()
+
+@Serializable
+class MRoomMember(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: PrevContent? = null,
+        val sender: UserId,
+        val unsigned: RoomMemberUnsigned? = null,
+        val replaces_state: String? = null,
+        val state_key: String? = null,
+        val invite_room_state: List<StrippedState>? = null,
+        val content: RoomMemberContent,
+        override val type: RoomEventType = RoomEventType.Member
+): RoomStateEvent()
+
+@Serializable
+class MRoomPowerLevels(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject? = null,
+        val sender: UserId,
+        val state_key: String? = null,
+        val content: RoomPowerLevelsContent,
+        override val type: RoomEventType = RoomEventType.PowerLevels
+): RoomStateEvent()
+
+@Serializable
+class MRoomPinnedEvents(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject? = null,
+        val sender: UserId,
+        val state_key: String? = null,
+        val txn_id: String? = null,
+        val content: RoomPinnedEventsContent,
+        override val type: RoomEventType = RoomEventType.PinnedEvents
+): RoomStateEvent()
+
+@Serializable
+class MRoomTopic(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject? = null,
+        val sender: UserId,
+        val state_key: String? = null,
+        val txn_id: String? = null,
+        val content: RoomTopicContent,
+        override val type: RoomEventType = RoomEventType.Topic
+): RoomStateEvent()
+
+@Serializable
+class MRoomName(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content:JsonObject?,
+        val sender: UserId,
+        val state_key: String?= null,
+        val txn_id: String?= null,
+        val content: RoomNameContent,
+        override val type: RoomEventType = RoomEventType.Name
+): RoomStateEvent()
+
+@Serializable
+class MRoomAvatar(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject?= null,
+        val sender: UserId,
+        val state_key: String?= null,
+        val txn_id: String?= null,
+        val content: RoomAvatarContent,
+        override val type: RoomEventType = RoomEventType.Avatar
+): RoomStateEvent()
+
+@Serializable
+class MRoomHistoryVisibility(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject?= null,
+        val sender: UserId,
+        val state_key: String?= null,
+        val txn_id: String?= null,
+        val content: RoomHistoryVisibilityContent,
+        override val type: RoomEventType = RoomEventType.HistoryVisibility
+): RoomStateEvent()
+
+@Serializable
+class MRoomGuestAccess(
+        //val age: Long?,
+        override val event_id: EventId,
+        override val origin_server_ts: Long,
+        val prev_content: JsonObject?=null,
+        val sender: UserId,
+        val state_key: String?= null,
+        val txn_id: String?= null,
+        val content: Content,
+        override val type: RoomEventType = RoomEventType.GuestAccess
+): RoomStateEvent() {
+    @Serializable
+    data class Content(
+            val guest_access: GuestAccess
+    ) {
+        enum class GuestAccess{
+            can_join,
+            forbidden
+        }
+    }
+}
+
+@Serializer(forClass = RoomEvent::class)
+private class RoomEventSerializer: KSerializer<RoomEvent> {
+    override val descriptor: SerialDescriptor =
+            StringDescriptor.withName("RoomEvent")
+
+    override fun serialize(encoder: Encoder, obj: RoomEvent) {
+        val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
+        val tree = when (obj) {
+            is MRoomMessage-> output.json.toJson(MRoomMessage.serializer(), obj)
+            is MRoomMember -> output.json.toJson(MRoomMember.serializer(), obj)
+            is MRoomName-> output.json.toJson(MRoomName.serializer(), obj)
+            is MRoomAvatar -> output.json.toJson(MRoomAvatar.serializer(), obj)
+            is MRoomTopic -> output.json.toJson(MRoomTopic.serializer(), obj)
+            is MRoomHistoryVisibility -> output.json.toJson(MRoomHistoryVisibility.serializer(), obj)
+            is MRoomGuestAccess -> output.json.toJson(MRoomGuestAccess.serializer(), obj)
+            is MRoomCreate -> output.json.toJson(MRoomCreate.serializer(), obj)
+            is MRoomAliases -> output.json.toJson(MRoomAliases.serializer(), obj)
+            is MRoomCanonAlias -> output.json.toJson(MRoomCanonAlias.serializer(), obj)
+            is MRoomJoinRule -> output.json.toJson(MRoomJoinRule.serializer(), obj)
+            is MRoomPinnedEvents -> output.json.toJson(MRoomPinnedEvents.serializer(), obj)
+            is MRoomPowerLevels -> output.json.toJson(MRoomPowerLevels.serializer(), obj)
+            is MRoomRedaction -> output.json.toJson(MRoomRedaction.serializer(), obj)
+            is MRoomUnrecognized-> output.json.toJson(MRoomUnrecognized.serializer(), obj)
+        }
+        output.encodeJson(tree)
+    }
+
+    override fun deserialize(decoder: Decoder): RoomEvent {
+        val input = decoder as? JsonInput ?: throw SerializationException("This class can be loaded only by Json")
+        val tree = input.decodeJson() as? JsonObject ?: throw SerializationException("Expected JsonObject")
+        val type = input.json.fromJson(RoomEventType.serializer(), tree.get("type")!!)
+        val event = when (type) {
+            RoomEventType.Message -> input.json.fromJson(MRoomMessage.serializer(), tree)
+            RoomEventType.Member -> input.json.fromJson(MRoomMember.serializer(), tree)
+            RoomEventType.Name -> input.json.fromJson(MRoomName.serializer(), tree)
+            RoomEventType.HistoryVisibility -> input.json.fromJson(MRoomHistoryVisibility.serializer(), tree)
+            RoomEventType.GuestAccess -> input.json.fromJson(MRoomGuestAccess.serializer(), tree)
+            RoomEventType.Create -> input.json.fromJson(MRoomCreate.serializer(), tree)
+            RoomEventType.Aliases -> input.json.fromJson(MRoomAliases.serializer(), tree)
+            RoomEventType.CanonAlias -> input.json.fromJson(MRoomCanonAlias.serializer(), tree)
+            RoomEventType.JoinRule -> input.json.fromJson(MRoomJoinRule.serializer(), tree)
+            RoomEventType.PinnedEvents -> input.json.fromJson(MRoomPinnedEvents.serializer(), tree)
+            RoomEventType.PowerLevels -> input.json.fromJson(MRoomPowerLevels.serializer(), tree)
+            RoomEventType.Redaction -> input.json.fromJson(MRoomRedaction.serializer(), tree)
+            RoomEventType.Unknown-> input.json.fromJson(MRoomUnrecognized.serializer(), tree)
+            RoomEventType.Topic -> input.json.fromJson(MRoomTopic.serializer(), tree)
+            RoomEventType.Avatar -> input.json.fromJson(MRoomAvatar.serializer(), tree)
+            RoomEventType.BotOptions -> input.json.fromJson(MRoomUnrecognized.serializer(), tree)
+        }
+        return event
+    }
+}

@@ -6,9 +6,10 @@ import koma.matrix.event.room_message.chat.ImageInfo
 import koma.matrix.room.naming.RoomAlias
 import koma.matrix.room.participation.RoomJoinRules
 import koma.matrix.room.visibility.HistoryVisibility
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-
+@Serializable
 class RoomAliasesContent(
         val aliases: List<RoomAlias>
 )
@@ -19,10 +20,12 @@ data class RoomCanonAliasContent(
         val alias: RoomAlias? = null
 )
 
+@Serializable
 class RoomHistoryVisibilityContent(
         val history_visibility: HistoryVisibility
 )
 
+@Serializable
 class RoomPowerLevelsContent(
         val users_default: Float = 0.0f,
         /**
@@ -39,33 +42,40 @@ class RoomPowerLevelsContent(
         val users: Map<UserId, Float>
 )
 
-
+@Serializable
 class RoomJoinRulesContent(
         val join_rule: RoomJoinRules
 )
 
+@Serializable
 class RoomRedactContent(
         val reason: String
 )
 
+@Serializable
 class RoomCreateContent(
         val creator: UserId,
+        @SerialName("m.federate")
         @Json(name = "m.federate") val federate: Boolean = true
 )
 
+@Serializable
 class RoomNameContent(
-        val name: String?
+        val name: String? = null
 )
 
+@Serializable
 class RoomTopicContent(
         val topic: String
 )
 
+@Serializable
 class RoomAvatarContent(
         val url: String,
         val info: ImageInfo?=null
 )
 
+@Serializable
 class RoomPinnedEventsContent(
         val pinned: List<String>
 )
