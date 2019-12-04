@@ -19,7 +19,7 @@ enum class HistoryVisibility {
     @Json(name = "world_readable") WorldReadable;
 
     companion object {
-        fun fromString(hvstr: String): HistoryVisibility {
+        internal fun fromString(hvstr: String): HistoryVisibility {
             val vis = when (hvstr) {
                 "invited" -> HistoryVisibility.Invited
                 "joined" -> HistoryVisibility.Joined
@@ -36,7 +36,7 @@ enum class HistoryVisibility {
     }
 }
 
-class HistoryVisibilityCaseInsensitiveAdapter {
+internal class HistoryVisibilityCaseInsensitiveAdapter {
     @ToJson
     fun toJson(hv: HistoryVisibility): String {
         return when (hv) {

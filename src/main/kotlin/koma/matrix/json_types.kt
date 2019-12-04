@@ -2,26 +2,29 @@ package koma.matrix
 
 import koma.matrix.room.naming.RoomAlias
 import koma.matrix.room.naming.RoomId
+import kotlinx.serialization.Serializable
 
 /**
  * Created by developer on 2017/7/8.
  * json type of classes
  */
+@Serializable
 data class Chunked<T>(
-        val start: String?,
+        val start: String? = null,
         val end: String,
         // can be null when the transferring is done
         val chunk: List<T>
 )
 
+@Serializable
 data class DiscoveredRoom(
-        val aliases: List<RoomAlias>?,
-        val avatar_url: String?,
+        val aliases: List<RoomAlias>? = null,
+        val avatar_url: String? = null,
         val guest_can_join: Boolean,
         val name: String?,
         val num_joined_members: Int,
         val room_id: RoomId,
-        val topic: String?,
+        val topic: String? = null,
         val world_readable: Boolean
 ) {
     fun dispName(): String{
@@ -43,12 +46,15 @@ data class DiscoveredRoom(
     }
 }
 
+@Serializable
 data class UploadResponse(
         val content_uri: String
 )
 
+@Serializable
 data class RoomInfo(
         val room_id: RoomId)
 
+@Serializable
 class EmptyResult()
 

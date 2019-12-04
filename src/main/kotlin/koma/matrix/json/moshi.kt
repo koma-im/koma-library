@@ -8,11 +8,9 @@ import koma.KomaFailure
 import koma.matrix.NotificationResponse
 import koma.matrix.UserIdAdapter
 import koma.matrix.event.EventIdAdapter
-import koma.matrix.event.rooRoomEvent.RoomEventAdapterFactory
 import koma.matrix.event.room_message.RoomEvent
 import koma.matrix.event.room_message.RoomEventTypeEnumAdapter
 import koma.matrix.event.room_message.chat.MessageAdapterFactory
-import koma.matrix.event.stripped.InviteEventAdapterFactory
 import koma.matrix.room.naming.RoomAliasAdapter
 import koma.matrix.room.naming.RoomIdAdapter
 import koma.toFailure
@@ -28,8 +26,6 @@ import kotlin.time.seconds
 object MoshiInstance{
     val moshiBuilder = Moshi.Builder()
             .add(MessageAdapterFactory())
-            .add(InviteEventAdapterFactory())
-            .add(RoomEventAdapterFactory())
             .add(UserIdAdapter())
             .add(RoomIdAdapter())
             .add(RoomAliasAdapter())

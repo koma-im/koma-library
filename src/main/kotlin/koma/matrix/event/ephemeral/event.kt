@@ -1,23 +1,29 @@
 package koma.matrix.event.ephemeral
 
 import com.squareup.moshi.Json
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /**
  * because of restrictions of moshi, sometimes we have to deal with Map
  * manually and convert it to a nice type
  */
+@Serializable
 data class EphemeralRawEvent(
         val type: EphemeralRawEventType,
-        val content: Map<String, Any>
+        val content: JsonObject
 )
 
+@Serializable
 enum class EphemeralRawEventType {
-    @Json(name = "m.typing") Typing,
-    @Json(name = "m.receipt") Receipt
+    @SerialName("m.typing") Typing,
+    @SerialName("m.receipt") Receipt
 }
 
 sealed class EphemeralEvent()
 
+@Serializable
 data class TypingEvent(val user_ids: List<String>): EphemeralEvent()
 
 fun EphemeralRawEvent.parse(): EphemeralEvent? {

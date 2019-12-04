@@ -19,7 +19,6 @@ class Preserved<T>(
     override fun toString(): String {
         return "Preserved(value=$value)"
     }
-
 }
 
 @Serializer(forClass = Preserved::class)

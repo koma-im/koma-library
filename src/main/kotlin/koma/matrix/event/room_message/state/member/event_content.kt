@@ -9,26 +9,26 @@ import kotlinx.serialization.json.JsonObject
 class RoomMemberContent(
         val membership: Membership,
         val avatar_url: String?,
-        val displayname: String?,
-        val is_direct: Boolean?,
-        val third_party_invite: Invite?,
-        val inviter: UserId?
+        val displayname: String? = null,
+        val is_direct: Boolean? = null,
+        val third_party_invite: Invite? = null,
+        val inviter: UserId? = null
 )
 
 @Serializable
 class PrevContent(
-        val avatar_url: String?,
-        val membership: Membership?,
-        val is_direct: Boolean?,
-        val displayname: String?
+        val avatar_url: String? = null,
+        val membership: Membership? = null,
+        val is_direct: Boolean? = null,
+        val displayname: String? = null
 )
 
 @Serializable
 class RoomMemberUnsigned(
         val age: Long,
-        val prev_content: PrevContent?,
-        val prev_sender: UserId?,
-        val replaces_state: String?
+        val prev_content: PrevContent? = null,
+        val prev_sender: UserId? = null,
+        val replaces_state: String? = null
 )
 
 @Serializable

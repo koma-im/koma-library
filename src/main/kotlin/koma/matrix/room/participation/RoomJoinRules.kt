@@ -1,13 +1,20 @@
 package koma.matrix.room.participation
 
 import com.squareup.moshi.Json
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class RoomJoinRules {
+    @SerialName("public")
     @Json(name = "public")
     Public,
+    @SerialName("knock")
     Knock,
+    @SerialName("invite")
     @Json(name = "invite")
     Invite,
+    @SerialName("private")
     Private;
 
     companion object {

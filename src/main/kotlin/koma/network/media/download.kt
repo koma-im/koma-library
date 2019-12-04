@@ -21,6 +21,8 @@ suspend fun getResponse(httpClient: OkHttpClient, url: HttpUrl): Result<Response
     return httpres.extract()
 }
 
+typealias MxcOrHttp = MHUrl
+
 /**
  * matrix or http media url
  */

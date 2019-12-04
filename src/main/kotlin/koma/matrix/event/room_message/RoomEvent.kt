@@ -261,7 +261,7 @@ class MRoomGuestAccess(
 }
 
 @Serializer(forClass = RoomEvent::class)
-private class RoomEventSerializer: KSerializer<RoomEvent> {
+internal class RoomEventSerializer: KSerializer<RoomEvent> {
     override val descriptor: SerialDescriptor =
             StringDescriptor.withName("RoomEvent")
 

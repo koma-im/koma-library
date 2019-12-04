@@ -71,9 +71,7 @@ internal class InvitationDeserialization {
               "state_key": ""
             }
         """.trimIndent()
-        val adapter2 = MoshiInstance.moshi.adapter(InviteEvent::class.java)
-        val data2 = adapter2.fromJson(state)
-        assert(data2 is InviteEvent)
+        val data2 =jsonDefault.parse(InviteEvent.serializer(), state)
 
         val events = """
           {
@@ -89,15 +87,8 @@ internal class InvitationDeserialization {
             ]
           }
         """.trimIndent()
+        val data3 =jsonDefault.parse(Events.serializer(InviteEvent.serializer()), events)
 
-        val typeA = Types.newParameterizedType(Events::class.java, InviteEvent::class.java)
-        val adapter3 = MoshiInstance.moshi.adapter<Events<InviteEvent>>(typeA)
-        val data3 = adapter3.fromJson(events)
-        assert(data3 is Events<InviteEvent>)
-
-
-        val adapter = MoshiInstance.moshi.adapter<InvitedRoom>(InvitedRoom::class.java)
-        val data = adapter.fromJson(invitedRoom)
-        assert(data is InvitedRoom)
+        jsonDefault.parse(InvitedRoom.serializer(), invitedRoom)
     }
 }
