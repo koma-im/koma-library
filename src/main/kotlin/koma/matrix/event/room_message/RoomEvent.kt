@@ -9,6 +9,8 @@ import koma.matrix.event.room_message.state.member.PrevContent
 import koma.matrix.event.room_message.state.member.RoomMemberContent
 import koma.matrix.event.room_message.state.member.RoomMemberUnsigned
 import koma.matrix.event.room_message.state.member.StrippedState
+import koma.matrix.json.jsonDefault
+import koma.matrix.json.jsonPretty
 import koma.matrix.room.naming.RoomId
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
@@ -24,6 +26,19 @@ sealed class RoomEvent: Comparable<RoomEvent>{
     abstract val origin_server_ts: Long
     abstract val type: RoomEventType
 
+    fun stringifyPretty(): String {
+        return jsonPretty.stringify(RoomEvent.serializer(), this)
+    }
+
+    companion object {
+        fun parseOrNull(json: String): RoomEvent? {
+            return try {
+                jsonDefault.parse(RoomEvent.serializer(), json)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
     override fun compareTo(other: RoomEvent): Int {
         return this.origin_server_ts.compareTo(other.origin_server_ts)
     }

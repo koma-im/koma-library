@@ -9,6 +9,7 @@ import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.http.ContentType
 import koma.matrix.*
 import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault

@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-version = "0.9.13"
+version = "0.9.14"
 
 plugins {
     id("java")
@@ -40,7 +40,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2")
     implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.14.0")
     implementation("io.ktor", "ktor-client-okhttp", ktorVersion)
-    api("io.ktor", "ktor-client-core", ktorVersion)
+    implementation("io.ktor", "ktor-client-core", ktorVersion)
     implementation("io.ktor", "ktor-client-json", ktorVersion)
     implementation("io.ktor", "ktor-client-serialization-jvm", ktorVersion)
     implementation("io.github.microutils:kotlin-logging:1.6.22")

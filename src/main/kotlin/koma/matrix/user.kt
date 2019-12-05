@@ -2,11 +2,10 @@ package koma.matrix
 
 import com.squareup.moshi.FromJson
 import com.squareup.moshi.ToJson
-import koma.util.KSerializable
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
 
-@KSerializable
+@Serializable
 data class UserId(private val input: String): Comparable<UserId> {
 
     val user: String

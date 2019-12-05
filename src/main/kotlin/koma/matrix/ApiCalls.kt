@@ -4,6 +4,7 @@ import io.ktor.client.engine.okhttp.OkHttpConfig
 import io.ktor.client.request.*
 import io.ktor.content.ByteArrayContent
 import io.ktor.http.*
+import io.ktor.http.ContentType
 import io.ktor.http.content.LocalFileContent
 import koma.*
 import koma.KResultF

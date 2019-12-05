@@ -1,22 +1,20 @@
 package koma.util
 
-import koma.matrix.json.MoshiInstance
+
+import koma.matrix.json.jsonDefaultConf
+import koma.matrix.json.jsonPretty
 import mu.KotlinLogging
-
-import kotlinx.serialization.Serializable
-
-internal typealias KSerializable = Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElementSerializer
 
 private val logger = KotlinLogging.logger {}
 
 fun formatJson(input: String): String {
-    val adapter = MoshiInstance.mapAdapterIndented
-    val v = try {
-        adapter.fromJson(input)
+    try {
+        val element = jsonPretty.parse(JsonElementSerializer, input)
+        return jsonPretty.stringify(JsonElementSerializer, element)
     } catch (e: Exception) {
         logger.warn { "json formatter failure $e" }
         return input
     }
-    val f = adapter.toJson(v)
-    return f
 }

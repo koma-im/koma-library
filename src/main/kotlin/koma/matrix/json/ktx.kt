@@ -13,6 +13,7 @@ internal val jsonDefaultConf = JsonConfiguration.Stable.copy(
 )
 
 internal val jsonDefault = Json(jsonDefaultConf)
+internal val jsonPretty = Json(jsonDefaultConf.copy(prettyPrint = true, indent = "  "))
 
 
 fun <T> Json.stringifyResult(s: SerializationStrategy<T>, obj: T): KResult<String, KomaFailure> {

@@ -1,10 +1,12 @@
 package koma.matrix.json
 
 import com.squareup.moshi.*
+import io.ktor.http.ContentType
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
 import kotlinx.serialization.json.JsonInput
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectSerializer
 import kotlinx.serialization.json.JsonOutput
 import mu.KotlinLogging
 import java.lang.reflect.ParameterizedType
@@ -18,6 +20,10 @@ class Preserved<T>(
         val raw: JsonObject,
         val value: T
 ) {
+    fun stringify(): String {
+        ContentType
+        return jsonDefault.stringify(JsonObjectSerializer, raw)
+    }
     override fun toString(): String {
         return "Preserved(value=$value)"
     }
