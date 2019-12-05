@@ -34,6 +34,8 @@ enum class RoomEventType{
     override fun toString(): String {
         return enumToStr(this)
     }
+
+    fun toName(): String = enumStringMap[this].toString()
     
     @Serializer(forClass = RoomEventType::class)
     companion object  : KSerializer<RoomEventType>  {

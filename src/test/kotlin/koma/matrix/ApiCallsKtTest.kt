@@ -27,8 +27,9 @@ internal class ApiCallsKtTest {
     private val client  = KHttpClient.client
     @Test
     fun loginTest() {
+        val s = Server("http://server".toHttpUrlOrNull()!!, client)
         runBlocking {
-            login(UserPassword(user = "u", password = "p"), "http://server", client)
+            s.login(UserPassword(user = "u", password = "p"))
         }
     }
     @Test

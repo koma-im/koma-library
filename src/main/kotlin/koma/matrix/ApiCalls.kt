@@ -1,9 +1,10 @@
 package koma.matrix
 
+import io.ktor.client.engine.okhttp.OkHttpConfig
 import io.ktor.client.request.*
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
-import io.ktor.http.takeFrom
+import io.ktor.content.ByteArrayContent
+import io.ktor.http.*
+import io.ktor.http.content.LocalFileContent
 import koma.*
 import koma.KResultF
 import koma.util.KResult as Result
@@ -46,6 +47,7 @@ import koma.util.KResult
 import koma.util.coroutine.adapter.okhttp.awaitType
 import koma.util.coroutine.withTimeout
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import okhttp3.*
 import kotlin.time.Duration
 import kotlin.time.seconds
@@ -163,9 +165,7 @@ internal interface MatrixMediaApiDef {
 class MatrixApi internal constructor(
         private val token: String,
         val userId: UserId,
-        val server: Server,
-        private val service: MatrixAccessApiDef,
-        private val mediaService: MatrixMediaApiDef
+        val server: Server
 ) {
     private val txnId = AtomicLong()
     private fun getTxnId(): String {
@@ -176,66 +176,89 @@ class MatrixApi internal constructor(
         return id.toString()
     }
 
+    private fun HttpRequestBuilder.buildUrl(vararg pathSegments: String) {
+        url {
+            takeFrom(server.apiUrlKtor)
+            path(*server.apiUrlPath, *pathSegments)
+        }
+        parameter("access_token", token)
+    }
+    private fun HttpRequestBuilder.jsonBody(body: Any) {
+        contentType(ContentType.Application.Json)
+        this.body = body
+    }
+
+    internal suspend inline fun <reified T> request(
+            method: HttpMethod,
+            crossinline block: HttpRequestBuilder.() -> Unit
+    ): KResult<T, KomaFailure>  {
+        return server.ktorHttpClient.requestResult<T>(method, block)
+    }
+
     suspend fun createRoom(settings: CreateRoomSettings): KResultF<CreateRoomResult> {
-        return runCatch {
-            server.ktorHttpClient.post<CreateRoomResult> {
-                contentType(ContentType.Application.Json)
-                url {
-                    takeFrom(server.apiUrlKtor)
-                    path(*server.apiUrlPath, "createRoom")
-                    parameter("access_token", token)
-                }
-                body = settings
-            }
-        }.mapFailure {
-            it.toFailure()
+        return request(method = HttpMethod.Post) {
+            contentType(ContentType.Application.Json)
+            buildUrl("createRoom")
+            body = settings
         }
     }
 
     suspend fun getNotifications(from: String? = null, limit: Int? = null, only: String? = null
     ): KResultF<NotificationResponse> {
-        return runCatch {
-            server.ktorHttpClient.get<NotificationResponse> {
-                url {
-                    takeFrom(server.apiUrlKtor)
-                    path(*server.apiUrlPath,  "notifications")
-                    parameter("access_token", token)
-                    parameter("from", from)
-                    parameter("limit", limit)
-                    parameter("only", only)
-                }
-            }
-        }.mapFailure {
-            it.toFailure()
+        return request(method = HttpMethod.Get) {
+            buildUrl("notifications")
+            parameter("from", from)
+            parameter("limit", limit)
+            parameter("only", only)
         }
     }
 
     suspend fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null
-    ): KResultF<Chunked<RawJson<RoomEvent>>> {
-        return service.getMessages(roomId.str, token, from, direction, to=to).awaitMatrix()
+    ): KResultF<Chunked<@Serializable(with=RawSerializer::class) Preserved<RoomEvent>>> {
+        return request(method = HttpMethod.Get) {
+            buildUrl("rooms", roomId.full, "messages")
+            parameter("from", from)
+            parameter("to", to)
+            parameter("dir", direction.toName())
+        }
     }
 
     suspend fun joinRoom(roomid: RoomId): KResultF<JoinRoomResult> {
-        return service.joinRoom(roomid.id, token).awaitMatrix()
+        return request(method = HttpMethod.Post) {
+            buildUrl("rooms", roomid.full, "join")
+        }
     }
 
-    suspend fun getEventContext(roomid: RoomId, eventId: EventId): KResultF<ContextResponse> {
-        return service.getEventContext(roomid.str, eventId.str,token= token).awaitMatrix()
+    suspend fun getEventContext(roomid: RoomId, eventId: EventId, limit: Int = 2): KResultF<ContextResponse> {
+        return request(method = HttpMethod.Get) {
+            buildUrl("rooms", roomid.full, "context", eventId.full)
+            parameter("limit", limit)
+        }
     }
 
-    suspend fun uploadFile(file: File, contentType: MediaType): KResultF<UploadResponse> {
-        val req = RequestBody.create(contentType, file)
-        return mediaService.uploadMedia(contentType.toString(), token, req).awaitMatrix()
+    suspend fun uploadMedia(body: Any, type: ContentType) : KResultF<UploadResponse> {
+        return request(method = HttpMethod.Post) {
+            contentType(type)
+            buildUrl("upload")
+            this.body = body
+        }
     }
-    suspend fun uploadByteArray(contentType: MediaType, byteArray: ByteArray): KResultF<UploadResponse> {
-        val req = RequestBody.create(contentType, byteArray)
-        return mediaService.uploadMedia(contentType.toString(), token, req).awaitMatrix()
+    suspend fun uploadFile(file: File, contentType: ContentType): KResultF<UploadResponse> {
+        return uploadMedia(LocalFileContent(file), contentType)
+    }
+    suspend fun uploadByteArray(contentType: ContentType, byteArray: ByteArray): KResultF<UploadResponse> {
+        return uploadMedia(ByteArrayContent(byteArray), contentType)
     }
 
     suspend fun inviteMember(
           room: RoomId,
-          memId: UserId): KResultF<InviteMemResult> =
-            service.inviteUser(room.id, token, InviteUserData(memId)).awaitMatrix()
+          memId: UserId): KResultF<InviteMemResult> {
+        return request(method = HttpMethod.Post) {
+            buildUrl("rooms", room.full, "invite")
+            jsonBody(InviteUserData(memId))
+        }
+    }
+
 
     suspend fun updateAvatar(user_id: UserId, avatarUrl: AvatarUrl
     ): KResultF<UpdateAvatarResult> {
@@ -243,9 +266,8 @@ class MatrixApi internal constructor(
         return runCatch {
             server.ktorHttpClient.put<UpdateAvatarResult> {
                 contentType(ContentType.Application.Json)
+                buildUrl("profile", u, "avatar_url")
                 url {
-                    takeFrom(server.apiUrlKtor)
-                    path(*server.apiUrlPath, "profile", u, "avatar_url")
                     parameter("access_token", token)
                 }
                 body = avatarUrl
@@ -255,36 +277,76 @@ class MatrixApi internal constructor(
         }
     }
 
-    suspend fun updateDisplayName(newname: String): KResultF<EmptyResult>
-            = service.updateDisplayName(
-            this.userId.full, token,
-            DisplayName(newname)).awaitMatrix()
+    suspend fun updateDisplayName(newname: String): KResultF<EmptyResult> {
+        val u = this.userId.full
+        return request(method = HttpMethod.Put) {
+            buildUrl("profile", u, "displayname")
+            jsonBody(DisplayName(newname))
+        }
+    }
 
-    suspend fun setRoomIcon(roomId: RoomId, content: RoomAvatarContent):KResultF<SendResult>
-            = service.sendStateEvent(roomId, RoomEventType.Avatar, token, content).awaitMatrix()
+    suspend fun setRoomIcon(roomId: RoomId, content: RoomAvatarContent):KResultF<SendResult> {
+        return request(method = HttpMethod.Put) {
+            buildUrl("rooms", roomId.full, "state", RoomEventType.Avatar.toName())
+            jsonBody(content)
+        }
+    }
 
     suspend fun banMember(
             roomid: RoomId,
             memId: UserId
-    ): KResultF<BanRoomResult> = service.banUser(roomid.id, token, MemberBanishment(memId)).awaitMatrix()
+    ): KResultF<BanRoomResult> {
+        return request(method = HttpMethod.Post) {
+            buildUrl("rooms", roomid.full, "ban")
+            jsonBody(MemberBanishment(memId))
+        }
+    }
 
-    suspend fun leavingRoom(roomid: RoomId): KResultF<LeaveRoomResult>
-            = service.leaveRoom(roomid.str, token).awaitMatrix()
+    suspend fun leavingRoom(roomid: RoomId): KResultF<LeaveRoomResult> {
+        return request(method = HttpMethod.Post) {
+            buildUrl("rooms", roomid.full, "leave")
+        }
+    }
 
-    suspend fun putRoomAlias(roomid: RoomId, alias: String): KResultF<EmptyResult>
-            = service.putRoomAlias(alias, token, RoomInfo(roomid)).awaitMatrix()
 
-    suspend fun deleteRoomAlias(alias: String): KResultF<EmptyResult>
-            = service.deleteRoomAlias(alias, token).awaitMatrix()
+    suspend fun putRoomAlias(roomid: RoomId, alias: String): KResultF<EmptyResult> {
+        return request(method = HttpMethod.Put) {
+            buildUrl("directory", "room", alias)
+            jsonBody(RoomInfo(roomid))
+        }
+    }
 
-    suspend fun setRoomCanonicalAlias(roomid: RoomId, canonicalAlias: RoomCanonAliasContent)
-            = service.sendStateEvent(roomid, RoomEventType.CanonAlias, token, canonicalAlias).awaitMatrix()
 
-    suspend fun setRoomName(roomid: RoomId, name: RoomNameContent)
-            = service.sendStateEvent(roomid, RoomEventType.Name, token, name).awaitMatrix()
+    suspend fun deleteRoomAlias(alias: String): KResultF<EmptyResult> {
+        return request(method = HttpMethod.Delete) {
+            buildUrl("directory", "room", alias)
+        }
+    }
+
+    internal suspend inline fun putStateEvent(roomId: RoomId, type: RoomEventType, body: Any): KResult<SendResult, KomaFailure> {
+        return request(method = HttpMethod.Put) {
+            buildUrl("rooms", roomId.full, "state", type.toName())
+            jsonBody(body)
+        }
+    }
+
+    internal suspend inline fun<reified T> getStateEvent(roomId: RoomId, type: RoomEventType): KResult<T, KomaFailure> {
+        return request(method = HttpMethod.Get) {
+            buildUrl("rooms", roomId.full, "state", type.toName())
+        }
+    }
+
+    suspend fun setRoomCanonicalAlias(roomid: RoomId, canonicalAlias: RoomCanonAliasContent): KResult<SendResult, KomaFailure> {
+        return putStateEvent(roomid, RoomEventType.CanonAlias, canonicalAlias)
+    }
+
+
+    suspend fun setRoomName(roomid: RoomId, name: RoomNameContent): KResult<SendResult, KomaFailure> {
+        return putStateEvent(roomid, RoomEventType.Name, name)
+    }
 
     suspend fun getRoomName(roomId: RoomId): Result<Optional<String>, Failure> {
-        val r = service.getStateEvent(roomId, RoomEventType.Name, token).awaitMatrix()
+        val r = getStateEvent<JsonObject>(roomId, RoomEventType.Name)
         val s = r.getOrNull() ?: return run{
             val e = r.failureOrThrow()
             if (e is HttpFailure && e.http_code == 404) {
@@ -299,7 +361,7 @@ class MatrixApi internal constructor(
         return Result.success(Optional.ofNullable(n))
     }
     suspend fun getRoomAvatar(roomId: RoomId): Result<Optional<String>, Failure> {
-        val (r, e, x) = service.getStateEvent(roomId, RoomEventType.Avatar, token).awaitMatrix()
+        val (r, e, x) = getStateEvent<JsonObject>(roomId, RoomEventType.Avatar)
         if (x.testFailure(r, e)) {
             return if (e is HttpFailure && e.http_code == 404) {
                 Result.success(Optional.empty())
@@ -313,19 +375,36 @@ class MatrixApi internal constructor(
             return Result.success(Optional.ofNullable(r["url"]?.toString()))
         }
     }
-
+    internal suspend inline fun<reified T> putMessageEvent(
+            roomId: RoomId, type: RoomEventType, txnId: String, body: M_Message
+    ): KResult<T, KomaFailure> {
+        return request(method = HttpMethod.Put) {
+            buildUrl("rooms", roomId.full, "send", type.toName(), txnId)
+            jsonBody(body)
+        }
+    }
     suspend fun sendMessage(roomId: RoomId, message: M_Message
     ): Result<SendResult, Failure> {
         val tid = getTxnId()
         logger.info { "sending to room $roomId message $tid with content $message" }
-
-        val res = service.sendMessageEvent(roomId, RoomEventType.Message, tid, token, message).awaitMatrix()
-
-        return res
+        return putMessageEvent(roomId, RoomEventType.Message, tid, message)
     }
 
-    suspend fun findPublicRooms(query: RoomDirectoryQuery) = service.findPublicRooms(token, query).awaitMatrix()
+    suspend fun findPublicRooms(query: RoomDirectoryQuery): Result<RoomBatch<DiscoveredRoom>, Failure>{
+        return request(method = HttpMethod.Post) {
+            buildUrl("publicRooms")
+            jsonBody(query)
+        }
+    }
 
+    internal val longTimeoutClient = server.ktorHttpClient.config {
+        engine {
+            check(this is OkHttpConfig)
+            this.config {
+                readTimeout(100, TimeUnit.SECONDS)
+            }
+        }
+    }
     private val longClient = server.httpClient.newBuilder().readTimeout(100, TimeUnit.SECONDS).build()
     private val syncUrl = server.apiURL.newBuilder().addPathSegment("sync").build()
     suspend fun sync(since: String?
@@ -334,21 +413,14 @@ class MatrixApi internal constructor(
                             , filter: String? = null
                             , networkTimeout: Duration = timeout + 10.seconds
     ): Result<SyncResponse, KomaFailure> {
-        val url = syncUrl.newBuilder().addQueryParameter("access_token", token)
-                .given(since) {addQueryParameter("since", it)}
-                .addQueryParameter("timeout", timeout.toLongMilliseconds().toString())
-                .addQueryParameter("full_state", full_state.toString())
-                .given(filter) {addQueryParameter("filter", it)}
-                .build()
-        val request = Request.Builder().url(url).build()
-        val client = if (longClient.readTimeoutMillis() > networkTimeout.inMilliseconds) {
-            longClient
-        } else {
-            longClient.newBuilder().readTimeout(networkTimeout.toLongMilliseconds()+1000, TimeUnit.MILLISECONDS).build()
-        }
-        val call = client.newCall(request)
-        val (success,failure, result) = withTimeout(networkTimeout) {
-            call.awaitType<SyncResponse>()
+        val (success,failure, result) =withTimeout(networkTimeout) {
+            longTimeoutClient.requestResult<SyncResponse>(HttpMethod.Get) {
+                buildUrl("sync")
+                parameter("since", since)
+                parameter("timeout", timeout.toLongMilliseconds())
+                parameter("full_state", full_state)
+                parameter("filter", filter)
+            }
         }
         if (result.testFailure(success, failure)) {
             return KResult.failure(failure)
@@ -357,36 +429,15 @@ class MatrixApi internal constructor(
     }
 }
 
+@Serializable
 data class AuthedUser(
         val access_token: String,
         val user_id: UserId)
 
+@Serializable
 data class UserPassword(
         val type: String = "m.login.password",
         // name only, without @ or :
         val user: String,
         val password: String
 )
-interface MatrixLoginApi {
-    @POST("_matrix/client/r0/login")
-    fun login(@Body userpass: UserPassword): Call<AuthedUser>
-}
-
-suspend fun login(userpass: UserPassword, server: String, client: OkHttpClient):
-        KResultF<AuthedUser> {
-    val moshi = MoshiInstance.moshi
-    val serverUrl = if (server.endsWith('/')) server else "$server/"
-    val auth_call = runCatch {
-        val retrofit = Retrofit.Builder()
-                .baseUrl(serverUrl)
-                .client(client)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
-                .build()
-        val service = retrofit.create(MatrixLoginApi::class.java)
-        service.login(userpass)
-    }
-    val c = if (auth_call.isFailure) {
-        return KResult.failure(IOFailure(auth_call.failureOrThrow()))
-    } else auth_call.getOrThrow()
-    return c.awaitMatrix()
-}

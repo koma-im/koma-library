@@ -3,13 +3,12 @@
 package koma
 
 import io.ktor.client.HttpClient
+import io.ktor.client.call.call
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
-import io.ktor.client.request.get
-import io.ktor.http.ContentType
-import io.ktor.http.URLBuilder
-import io.ktor.http.takeFrom
+import io.ktor.client.request.*
+import io.ktor.http.*
 import koma.matrix.*
 import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault
@@ -18,11 +17,8 @@ import koma.matrix.room.naming.ResolveRoomAliasResult
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.media.MHUrl
-import koma.util.KResult
+import koma.util.*
 import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma.util.given
-import koma.util.mapFailure
-import koma.util.runCatch
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -51,6 +47,10 @@ class Server(
     val mediaUrl = url.newBuilder().addPathSegments(mediaPath).build()
     internal val apiUrlPath = apiURL.pathSegments().filterNot { it.isEmpty() }.toTypedArray()
     internal val apiUrlKtor = URLBuilder(apiURL.toString()).build()
+    internal fun URLBuilder.buildPath(vararg pathSegments: String) {
+        takeFrom(apiUrlKtor)
+        path(*apiUrlPath, *pathSegments)
+    }
 
     @Deprecated("moving toward multi-platform", ReplaceWith("okHttpClient"))
     val httpClient
@@ -68,20 +68,6 @@ class Server(
 
     private val downloader = Downloader(okHttpClient)
 
-    private val retrofit = Retrofit.Builder()
-            .baseUrl(apiURL)
-            .addConverterFactory(MoshiConverterFactory.create(MoshiInstance.moshi))
-            .client(okHttpClient).build()
-
-    val service: MatrixPublicApi = retrofit.create(MatrixPublicApi::class.java)
-
-    /**
-     * needs authentication
-     */
-    private val userService = retrofit.create(MatrixAccessApiDef::class.java)
-
-    private val mediaService = retrofit.newBuilder().baseUrl(mediaUrl).build()
-            .create(MatrixMediaApiDef::class.java)
     init {
     }
 
@@ -89,33 +75,56 @@ class Server(
      * get access to APIs that require auth
      */
     fun account(userId: UserId, token: String): MatrixApi {
-        return MatrixApi(token, userId, this, userService, mediaService)
+        return MatrixApi(token, userId, this)
+    }
+
+    private suspend inline fun <reified T> request(
+            method: HttpMethod,
+            crossinline block: HttpRequestBuilder.() -> Unit
+    ): KResult<T, KomaFailure>  {
+        return ktorHttpClient.requestResult<T>(method, block)
     }
 
     /**
      * name of a user
      */
     suspend fun getDisplayNameKtor(userId: UserId): KResult<DisplayName, Failure> {
-        return runCatch {
-            ktorHttpClient.get<DisplayName> {
-                url {
-                    takeFrom(apiUrlKtor)
-                    path(*apiUrlPath, "profile", userId.full, "displayname")
-                }
+        return request(HttpMethod.Get) {
+            url {
+                buildPath("profile", userId.full, "displayname")
             }
-        }.mapFailure {
-            it.toFailure()
         }
     }
 
     suspend fun resolveRoomAlias(roomAlias: String): KResultF<ResolveRoomAliasResult> {
-        val call: Call<ResolveRoomAliasResult> = service.resolveRoomAlias(roomAlias)
-        return call.awaitMatrix()
+        return request(HttpMethod.Get) {
+            url {
+                buildPath("directory", "room", roomAlias)
+            }
+        }
     }
 
-    suspend fun listPublicRooms(since: String?=null): KResultF<RoomBatch<DiscoveredRoom>> {
-        return service.publicRooms(since).awaitMatrix()
+    suspend fun listPublicRooms(since: String?=null, limit: Int = 20
+    ): KResultF<RoomBatch<DiscoveredRoom>> {
+        return request(HttpMethod.Get) {
+            url {
+                buildPath("publicRooms")
+                parameter("since", since)
+                parameter("limit", limit)
+            }
+        }
     }
+
+    suspend fun login(userpass: UserPassword): KResultF<AuthedUser> {
+        return request<AuthedUser>(HttpMethod.Post) {
+            contentType(ContentType.Application.Json)
+            url {
+                buildPath("login")
+            }
+            body = userpass
+        }
+    }
+
 
     fun mxcToHttp(mxc: MHUrl): HttpUrl {
         when (mxc){
@@ -201,10 +210,6 @@ interface MatrixPublicApi {
     fun publicRooms(@Query("since") since: String? = null,
                     @Query("limit") limit: Int = 20
     ): Call<RoomBatch<DiscoveredRoom>>
-
-    @GET("directory/room/{roomAlias}")
-    fun resolveRoomAlias(@Path("roomAlias") roomAlias: String): Call<ResolveRoomAliasResult>
-
 }
 
 enum class ThumbnailMethod {
