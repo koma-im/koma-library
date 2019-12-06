@@ -20,7 +20,7 @@ import kotlinx.serialization.json.JsonOutput
 
 @Serializable
 data class JoinedRoom(
-        val unread_notifications: UnreadNotifications?,
+        val unread_notifications: UnreadNotifications? = null,
 
         val account_data: Events<GeneralEvent>,
         val ephemeral: Events<EphemeralRawEvent>,
@@ -31,8 +31,8 @@ data class JoinedRoom(
 @Serializable
 data class  Timeline<T>(
         val events: List<T>,
-        val limited: Boolean?,
-        val prev_batch: String?
+        val limited: Boolean? = null,
+        val prev_batch: String? = null
 )
 
 @Serializable
@@ -110,6 +110,6 @@ data class LeftRoom(
 
 @Serializable
 data class UnreadNotifications(
-        val highlight_count: Int?,
-        val notification_count: Int?
+        val highlight_count: Int? = null,
+        val notification_count: Int? = null
 )

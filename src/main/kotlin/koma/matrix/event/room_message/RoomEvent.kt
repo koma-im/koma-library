@@ -15,9 +15,12 @@ import koma.matrix.room.naming.RoomId
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
 import kotlinx.serialization.json.JsonInput
+import kotlinx.serialization.json.JsonLiteral
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonOutput
+import mu.KotlinLogging
 
+private val logger = KotlinLogging.logger {}
 // try to make moshi return different kind of objects depending on a key
 
 @Serializable(with = RoomEventSerializer::class)
@@ -35,6 +38,7 @@ sealed class RoomEvent: Comparable<RoomEvent>{
             return try {
                 jsonDefault.parse(RoomEvent.serializer(), json)
             } catch (e: Exception) {
+                logger.error { "Could not parse $json for $e"}
                 null
             }
         }
@@ -304,7 +308,14 @@ internal class RoomEventSerializer: KSerializer<RoomEvent> {
 
     override fun deserialize(decoder: Decoder): RoomEvent {
         val input = decoder as? JsonInput ?: throw SerializationException("This class can be loaded only by Json")
-        val tree = input.decodeJson() as? JsonObject ?: throw SerializationException("Expected JsonObject")
+        var tree = input.decodeJson() as? JsonObject ?: throw SerializationException("Expected JsonObject")
+        val tsElement = tree.getPrimitive("origin_server_ts")
+        if (tsElement.longOrNull == null) {
+            val m = tree.content.toMutableMap()
+            val long = JsonLiteral(tsElement.double.toLong())
+            m["origin_server_ts"] = long
+            tree = JsonObject(m)
+        }
         val type = input.json.fromJson(RoomEventType.serializer(), tree.get("type")!!)
         val event = when (type) {
             RoomEventType.Message -> input.json.fromJson(MRoomMessage.serializer(), tree)

@@ -2,7 +2,8 @@ package koma.matrix.event.room_message.state.member
 
 import koma.matrix.UserId
 import koma.matrix.room.participation.Membership
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
+import kotlinx.serialization.internal.StringDescriptor
 import kotlinx.serialization.json.JsonObject
 
 @Serializable
@@ -25,7 +26,6 @@ class PrevContent(
 
 @Serializable
 class RoomMemberUnsigned(
-        val age: Long,
         val prev_content: PrevContent? = null,
         val prev_sender: UserId? = null,
         val replaces_state: String? = null

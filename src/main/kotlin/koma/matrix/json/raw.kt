@@ -21,7 +21,6 @@ class Preserved<T>(
         val value: T
 ) {
     fun stringify(): String {
-        ContentType
         return jsonDefault.stringify(JsonObjectSerializer, raw)
     }
     override fun toString(): String {

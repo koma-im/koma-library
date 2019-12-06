@@ -55,6 +55,7 @@ import kotlin.time.seconds
 
 private val logger = KotlinLogging.logger {}
 
+@Serializable
 data class SendResult(
         val event_id: EventId
 )
