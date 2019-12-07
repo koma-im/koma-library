@@ -6,6 +6,7 @@ import io.ktor.content.ByteArrayContent
 import io.ktor.http.*
 import io.ktor.http.ContentType
 import io.ktor.http.content.LocalFileContent
+import io.ktor.http.content.OutgoingContent
 import koma.*
 import koma.KResultF
 import koma.util.KResult as Result
@@ -238,18 +239,27 @@ class MatrixApi internal constructor(
         }
     }
 
-    suspend fun uploadMedia(body: Any, type: ContentType) : KResultF<UploadResponse> {
+    suspend fun uploadMedia(body: OutgoingContent) : KResultF<UploadResponse> {
         return request(method = HttpMethod.Post) {
-            contentType(type)
-            buildUrl("upload")
+            url {
+                takeFrom(server.apiUrlKtor)
+                path(*server.mediaPathSegments, "upload")
+            }
+            parameter("access_token", token)
             this.body = body
         }
     }
-    suspend fun uploadFile(file: File, contentType: ContentType): KResultF<UploadResponse> {
-        return uploadMedia(LocalFileContent(file), contentType)
+    suspend fun uploadFile(file: File, contentType: ContentType?=null): KResultF<UploadResponse> {
+        val content = if (contentType != null) {
+            LocalFileContent(file, contentType)
+        } else LocalFileContent(file)
+        return uploadMedia(content)
     }
-    suspend fun uploadByteArray(contentType: ContentType, byteArray: ByteArray): KResultF<UploadResponse> {
-        return uploadMedia(ByteArrayContent(byteArray), contentType)
+    suspend fun uploadByteArray(contentType: ContentType?=null, byteArray: ByteArray): KResultF<UploadResponse> {
+        val content = if (contentType != null) {
+            ByteArrayContent(byteArray, contentType)
+        } else ByteArrayContent(byteArray)
+        return uploadMedia(content)
     }
 
     suspend fun inviteMember(
@@ -399,16 +409,8 @@ class MatrixApi internal constructor(
         }
     }
 
-    internal val longTimeoutClient = server.ktorHttpClient.config {
-        engine {
-            check(this is OkHttpConfig)
-            this.config {
-                readTimeout(100, TimeUnit.SECONDS)
-            }
-        }
-    }
-    private val longClient = server.httpClient.newBuilder().readTimeout(100, TimeUnit.SECONDS).build()
-    private val syncUrl = server.apiURL.newBuilder().addPathSegment("sync").build()
+    internal val longTimeoutClient
+        get() = server.longTimeoutClient
     suspend fun sync(since: String?
                             , timeout: Duration = 50.seconds
                             , full_state: Boolean = false

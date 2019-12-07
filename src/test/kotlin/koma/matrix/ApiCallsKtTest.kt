@@ -4,6 +4,7 @@ import koma.Server
 import koma.Timeout
 import koma.matrix.event.room_message.chat.TextMessage
 import koma.matrix.json.MoshiInstance
+import koma.matrix.json.jsonDefault
 import koma.matrix.room.naming.RoomId
 import koma.matrix.sync.Events
 import koma.matrix.sync.RoomsResponse
@@ -46,15 +47,16 @@ internal class ApiCallsKtTest {
         val server = MockWebServer()
         val sync = SyncResponse("next_bat", Events(listOf()), Events(listOf()),
                 RoomsResponse(mapOf(), mapOf(), mapOf()))
-        val adapter = MoshiInstance.moshi.adapter<SyncResponse>(SyncResponse::class.java)
-        val res= MockResponse().setBody(adapter.toJson(sync))
+        val res= MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(jsonDefault.stringify(SyncResponse.serializer(), sync))
         repeat(4) { server.enqueue(res) }
         server.start()
         val base = server.url("vx/mock")
         val s = Server(base, client)
         val a = s.account(UserId("uid"), "token")
         val r = runBlocking { a.sync("test") }
-        assert(r.isSuccess)
+        assert(r.isSuccess) { "Expected success ${r.failureOrNull()}"}
         val r1 = runBlocking { a.sync("test1") }
         assert(r1.isSuccess)
         val r2 = runBlocking { a.sync("test2", timeout =1000.milliseconds) }
@@ -91,8 +93,9 @@ internal class ApiCallsKtTest {
         server.dispatcher = disp
         val sync = SyncResponse("next_bat", Events(listOf()), Events(listOf()),
                 RoomsResponse(mapOf(), mapOf(), mapOf()))
-        val adapter = MoshiInstance.moshi.adapter<SyncResponse>(SyncResponse::class.java)
-        val res= MockResponse().setBody(adapter.toJson(sync))
+        val res= MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(jsonDefault.stringify(SyncResponse.serializer(),sync))
         server.start()
         val base = server.url("mock")
         val s = Server(base, client)
@@ -103,10 +106,10 @@ internal class ApiCallsKtTest {
         server.enqueue(res)
         assertEquals(1, disp.queuedCount())
         assertEquals(0, server.dispatcher.peek().getHeadersDelay(TimeUnit.MILLISECONDS))
-        assertTrue { runBlocking {
-            val response = a.sync("00", timeout =10.milliseconds, networkTimeout = 100.milliseconds)
-            response.isSuccess
-        }}
+        val response =runBlocking {
+            a.sync("00", timeout =10.milliseconds, networkTimeout = 350.milliseconds)
+        }
+        assert ( response.isSuccess ) { "response $response"}
         assertEquals(0, disp.queuedCount())
         assertEquals(1, server.requestCount)
         server.takeRequest()
@@ -144,8 +147,9 @@ internal class ApiCallsKtTest {
         val server = MockWebServer()
         val sync = SyncResponse("next_bat", Events(listOf()), Events(listOf()),
                 RoomsResponse(mapOf(), mapOf(), mapOf()))
-        val adapter = MoshiInstance.moshi.adapter<SyncResponse>(SyncResponse::class.java)
-        val res = MockResponse().setBody(adapter.toJson(sync))
+        val res = MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(jsonDefault.stringify(SyncResponse.serializer(),sync))
         server.enqueue(res.clone().setHeadersDelay(101, TimeUnit.MILLISECONDS))
         server.start()
         val base = server.url("mock")

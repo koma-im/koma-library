@@ -2,9 +2,11 @@ package koma.controller.sync
 
 import com.squareup.moshi.JsonEncodingException
 import koma.IOFailure
+import koma.InvalidData
 import koma.Server
 import koma.matrix.UserId
 import koma.matrix.json.MoshiInstance
+import koma.matrix.json.jsonDefault
 import koma.matrix.sync.Events
 import koma.matrix.sync.RoomsResponse
 import koma.matrix.sync.SyncResponse
@@ -14,6 +16,7 @@ import koma.util.getOrThrow
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonDecodingException
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.Test
@@ -29,8 +32,10 @@ internal class MatrixSyncReceiverTest {
         val server = MockWebServer()
         val sync = SyncResponse("next_bat", Events(listOf()), Events(listOf()),
                 RoomsResponse(mapOf(), mapOf(), mapOf()))
-        val adapter = MoshiInstance.moshi.adapter<SyncResponse>(SyncResponse::class.java)
-        val res= MockResponse().setBody(adapter.toJson(sync))
+        val b = jsonDefault.stringify(SyncResponse.serializer(), sync)
+        val res= MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(b)
         server.enqueue(res)
         server.start()
         val base = server.url("vx/mock")
@@ -53,10 +58,13 @@ internal class MatrixSyncReceiverTest {
         assertEquals("token", url1.queryParameter("access_token"))
         assertEquals("next_bat", url1.queryParameter("since"))
         assertEquals("50000", url1.queryParameter("timeout"))
-        server.enqueue(MockResponse().setBody("not-json"))
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody("not-json"))
         val res1 = runBlocking { m.events.receive() }.failureOrThrow()
-        assert(res1 is IOFailure)
-        assert((res1 as IOFailure).throwable is JsonEncodingException) { "unexpected failure $res1"}
+        assert(res1 is InvalidData) { "res $res1"}
+        res1 as InvalidData
+        assert(res1.cause is JsonDecodingException) { "unexpected failure $res1"}
 
         val req2 = server.takeRequest()
         val url2 = req2.requestUrl!!
@@ -64,7 +72,9 @@ internal class MatrixSyncReceiverTest {
         assertEquals("next_bat", url2.queryParameter("since"))
         assertEquals("1000", url2.queryParameter("timeout"))
         
-        server.enqueue(MockResponse().setBody(adapter.toJson(sync.copy(next_batch = "nb3"))))
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(jsonDefault.stringify(SyncResponse.serializer(), sync.copy(next_batch = "nb3"))))
         val res3 = runBlocking { m.events.receive() }.getOrThrow()
         assertEquals("nb3", res3.next_batch)
 

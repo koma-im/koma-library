@@ -42,7 +42,9 @@ class InvalidData(message: String? = null, val cause: Throwable?=null): KomaFail
         given(cause) { append(", caused by $cause")}
     }
 }
-class OtherFailure(message: String): KomaFailure(message) {
+class OtherFailure(message: String
+                   , val cause: Throwable?=null
+): KomaFailure(message) {
     override fun toString() = "OtherFailure, $message"
 }
 
@@ -88,6 +90,6 @@ fun Throwable.toFailure(): KomaFailure {
             val response = this.response
             HttpFailure(response.status.value, response.status.description, this)
         }
-        else -> OtherFailure("$this")
+        else -> OtherFailure("$this", cause = this)
     }
 }

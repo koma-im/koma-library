@@ -1,5 +1,9 @@
 package koma.matrix
 
+import io.ktor.client.engine.okhttp.OkHttpEngine
+import io.ktor.content.ByteArrayContent
+import io.ktor.http.ContentType
+import io.ktor.util.InternalAPI
 import io.ktor.util.KtorExperimentalAPI
 import koma.*
 import koma.matrix.event.room_message.chat.TextMessage
@@ -12,15 +16,14 @@ import koma.matrix.room.naming.RoomId
 import koma.matrix.room.visibility.RoomVisibility
 import koma.matrix.user.AvatarUrl
 import koma.network.client.okhttp.KHttpClient
-import koma.network.media.MHUrl
 import koma.util.KResult
 import koma.util.failureOrThrow
-import koma.util.getOr
 import koma.util.getOrThrow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.json.JsonDecodingException
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.Assertions.*
@@ -28,6 +31,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.io.EOFException
 import java.net.SocketTimeoutException
+import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -36,7 +40,23 @@ import kotlin.contracts.contract
 @KtorExperimentalAPI
 @ExperimentalContracts
 internal class MatrixApiTest {
-
+    @InternalAPI
+    @Test
+    fun ktorHttpClient() {
+        val ms = MockWebServer()
+        val base = ms.url("vv")
+        val s = Server(base, KHttpClient.client)
+        val sok = s.okHttpClient as OkHttpClient
+        assertEquals(10000,  sok.readTimeoutMillis)
+        val api = s.account(UserId("u"), "token")
+        val eng = api.longTimeoutClient.engine
+        check(eng is OkHttpEngine)
+        val field = OkHttpEngine::class.java.getDeclaredField("engine").apply {
+            isAccessible = true
+        }
+        val ok = field.get(eng) as OkHttpClient
+        assertEquals(100000, ok.readTimeoutMillis)
+    }
     private val fastClient =  KHttpClient.client.newBuilder().readTimeout(1, TimeUnit.SECONDS).build()
     @Test
     fun getRoomName() {
@@ -112,6 +132,41 @@ internal class MatrixApiTest {
         f as HttpFailure
         assertEquals(403, f.http_code)
         assertEquals("PUT", server.takeRequest().method)
+    }
+
+    @Test
+    fun uploadMedia() {
+        val server = MockWebServer()
+        server.start()
+        val base = server.url("mock")
+        val s = Server(base, fastClient)
+        val api = s.account(UserId("u"), "token")
+        val n= runBlocking {
+             api.uploadMedia(ByteArrayContent(byteArrayOf(3,8,4), ContentType.Application.OctetStream))
+        }
+        assert(n.isFailure)
+        val f0 = n.failureOrThrow()
+        assertTrue(f0 is Timeout) { "fail $f0" }
+        f0 as Timeout
+        val req = server.takeRequest()
+        assertEquals("POST", req.method)
+        assertEquals("/mock/_matrix/media/r0/upload", req.path?.substringBefore('?'))
+
+        val url = req.requestUrl!!
+        assertEquals("token", url.queryParameter("access_token"))
+
+        val body = req.body.readByteArray()
+        assert(byteArrayOf(3, 8, 4).contentEquals(body))
+
+        repeat(2) {
+            server.enqueue(MockResponse()
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("""{"content_uri": "url-of-uploaded-media"}"""))
+        }
+        val response = runBlocking { api.uploadMedia(ByteArrayContent(byteArrayOf(3,8,4), ContentType.Application.OctetStream)) }
+        assert(response.isSuccess) { "fail $response"}
+        val res = response.getOrThrow()
+        assertEquals("url-of-uploaded-media", res.content_uri)
     }
 
     @Test

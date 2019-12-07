@@ -3,13 +3,18 @@
 package koma
 
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.call
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.engine.okhttp.OkHttpConfig
+import io.ktor.client.engine.okhttp.OkHttpEngine
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.http.ContentType
+import io.ktor.util.InternalAPI
 import koma.matrix.*
 import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault
@@ -29,6 +34,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
 
@@ -52,24 +58,38 @@ class Server(
         takeFrom(apiUrlKtor)
         path(*apiUrlPath, *pathSegments)
     }
+    internal val mediaPathSegments = url.pathSegments().toTypedArray().plus(arrayOf("_matrix", "media", "r0"))
 
     @Deprecated("moving toward multi-platform", ReplaceWith("okHttpClient"))
     val httpClient
         get() = okHttpClient
 
-    val ktorHttpClient = HttpClient(OkHttp) {
-        install(JsonFeature) {
-            acceptContentTypes = acceptContentTypes.plus(ContentType.Text.Html)
-            serializer = KotlinxSerializer(jsonDefault)
-        }
-        engine {
-            preconfigured = okHttpClient
-        }
-    }
+    val ktorHttpClient: HttpClient
 
+    internal val longTimeoutClient: HttpClient
     private val downloader = Downloader(okHttpClient)
 
     init {
+        val contentTypes = listOf(ContentType.Application.Json, ContentType.Text.Html)
+        val kserializer = KotlinxSerializer(jsonDefault)
+        ktorHttpClient = HttpClient(OkHttp) {
+            install(JsonFeature) {
+                acceptContentTypes = contentTypes
+                serializer = kserializer
+            }
+            engine {
+                preconfigured = okHttpClient
+            }
+        }
+        longTimeoutClient = HttpClient(OkHttp) {
+            install(JsonFeature) {
+                acceptContentTypes = contentTypes
+                serializer = kserializer
+            }
+            engine {
+                preconfigured = okHttpClient.newBuilder().readTimeout(100, TimeUnit.SECONDS).build()
+            }
+        }
     }
 
     /**
