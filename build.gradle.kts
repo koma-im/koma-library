@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-version = "0.9.14"
+version = "0.9.15"
 
 plugins {
     id("java")
@@ -34,9 +34,7 @@ dependencies {
     val ktorVersion = "1.2.6"
     implementation(kotlin("stdlib-jdk8"))
     compileOnly(kotlin("reflect"))
-    compile("com.squareup.moshi:moshi:1.8.0")
     compile("com.squareup.retrofit2:retrofit:2.6.1")
-    implementation("com.squareup.retrofit2:converter-moshi:2.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2")
     implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.14.0")
     implementation("io.ktor", "ktor-client-okhttp", ktorVersion)
@@ -45,7 +43,6 @@ dependencies {
     implementation("io.ktor", "ktor-client-serialization-jvm", ktorVersion)
     implementation("io.github.microutils:kotlin-logging:1.6.22")
     implementation("org.slf4j:slf4j-api:1.8.0-beta2")
-    kapt("com.squareup.moshi:moshi-kotlin-codegen:1.8.0")
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))

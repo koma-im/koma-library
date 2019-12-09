@@ -1,15 +1,16 @@
 package koma.matrix
 
-import io.ktor.client.engine.okhttp.OkHttpConfig
-import io.ktor.client.request.*
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.parameter
+import io.ktor.client.request.put
 import io.ktor.content.ByteArrayContent
-import io.ktor.http.*
 import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
 import io.ktor.http.content.LocalFileContent
 import io.ktor.http.content.OutgoingContent
+import io.ktor.http.contentType
+import io.ktor.http.takeFrom
 import koma.*
-import koma.KResultF
-import koma.util.KResult as Result
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
 import koma.matrix.event.room_message.RoomEvent
@@ -18,7 +19,9 @@ import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.event.room_message.state.RoomAvatarContent
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.event.room_message.state.RoomNameContent
-import koma.matrix.json.*
+import koma.matrix.json.Preserved
+import koma.matrix.json.RawJson
+import koma.matrix.json.RawSerializer
 import koma.matrix.pagination.FetchDirection
 import koma.matrix.pagination.RoomBatch
 import koma.matrix.publicapi.rooms.RoomDirectoryQuery
@@ -35,24 +38,20 @@ import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.util.*
-import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import mu.KotlinLogging
-import retrofit2.Call
-import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
-import retrofit2.http.*
-import java.io.File
-import java.util.*
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
-import koma.util.KResult
-import koma.util.coroutine.adapter.okhttp.awaitType
 import koma.util.coroutine.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
-import okhttp3.*
+import mu.KotlinLogging
+import okhttp3.RequestBody
+import retrofit2.Call
+import retrofit2.http.*
+import java.io.File
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration
 import kotlin.time.seconds
+import koma.util.KResult
+import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
 

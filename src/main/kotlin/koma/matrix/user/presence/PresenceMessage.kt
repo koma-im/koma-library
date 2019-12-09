@@ -1,6 +1,5 @@
 package koma.matrix.user.presence
 
-import com.squareup.moshi.Json
 import koma.matrix.UserId
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -8,7 +7,7 @@ import kotlinx.serialization.Serializable
 @kotlinx.serialization.Serializable
 enum class PresenceEventType {
     @SerialName("m.presence")
-    @Json(name = "m.presence") Presence
+    Presence
 }
 
 @Serializable
@@ -30,9 +29,9 @@ data class PresenceMessageContent (
 @Serializable
 enum class UserPresenceType {
     @SerialName("online")
-    @Json(name="online") Online,
+    Online,
     @SerialName("offline")
-    @Json(name="offline") Offline,
+    Offline,
     @SerialName("unavailable")
-    @Json(name="unavailable") Unavailable,
+    Unavailable,
 }

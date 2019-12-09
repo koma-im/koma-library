@@ -1,6 +1,5 @@
 package koma.matrix.event.ephemeral
 
-import com.squareup.moshi.Json
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject

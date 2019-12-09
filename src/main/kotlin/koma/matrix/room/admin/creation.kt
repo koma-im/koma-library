@@ -1,6 +1,5 @@
 package koma.matrix.room.admin
 
-import com.squareup.moshi.JsonClass
 import koma.matrix.room.naming.RoomAlias
 import koma.matrix.room.naming.RoomId
 import koma.matrix.room.visibility.RoomVisibility

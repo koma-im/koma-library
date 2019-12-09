@@ -1,13 +1,7 @@
 package koma.matrix.event.room_message
 
-import com.squareup.moshi.FromJson
-import com.squareup.moshi.ToJson
-import koma.matrix.room.naming.RoomAlias
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
-
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 
 @Serializable
 enum class RoomEventType{
@@ -31,9 +25,7 @@ enum class RoomEventType{
     @SerialName( "m.room.guest_access") GuestAccess,
     Unknown;
 
-    override fun toString(): String {
-        return enumToStr(this)
-    }
+    override fun toString() = toName()
 
     fun toName(): String = enumStringMap[this].toString()
     
@@ -67,37 +59,6 @@ enum class RoomEventType{
         override fun deserialize(decoder: Decoder): RoomEventType {
             val s = decoder.decodeString()
             return stringEnumMap[s] ?: RoomEventType.Unknown
-        }
-        private val json = Json(JsonConfiguration.Stable.copy(unquoted = true))
-
-        internal fun enumToStr(t: RoomEventType): String {
-            val json = json.stringify(RoomEventType.serializer(), t)
-            return json
-        }
-        internal fun strToEnum(s: String): RoomEventType? {
-            return try {
-                json.parse(serializer(), s)
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-}
-
-internal class RoomEventTypeEnumAdapter {
-    companion object {
-        private val json = Json(JsonConfiguration.Stable)
-    }
-
-    @ToJson
-    fun toJson(t: RoomEventType) = json.stringify(RoomEventType.serializer(), t)
-
-    @FromJson
-    fun fromJson(str: String): RoomEventType? {
-        return try {
-            json.parse(RoomEventType.serializer(), str)
-        } catch (e: Exception) {
-            null
         }
     }
 }

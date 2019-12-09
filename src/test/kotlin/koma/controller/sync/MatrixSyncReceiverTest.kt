@@ -1,11 +1,9 @@
 package koma.controller.sync
 
-import com.squareup.moshi.JsonEncodingException
 import koma.IOFailure
 import koma.InvalidData
 import koma.Server
 import koma.matrix.UserId
-import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault
 import koma.matrix.sync.Events
 import koma.matrix.sync.RoomsResponse

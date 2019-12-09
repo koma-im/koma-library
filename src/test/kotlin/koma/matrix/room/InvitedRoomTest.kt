@@ -1,9 +1,6 @@
 package koma.matrix.room
 
-
-import com.squareup.moshi.Types
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
-import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault
 import koma.matrix.sync.Events
 import kotlin.test.Test

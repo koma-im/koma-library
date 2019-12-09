@@ -22,7 +22,7 @@ internal class RoomEventTypeTest {
         assertEquals(RoomEventType.Aliases, a)
         val u = jsonDefault.parse(RoomEventType.serializer(), "mx")
         assertEquals(RoomEventType.Unknown, u)
-        val s = RoomEventType.enumToStr(RoomEventType.Aliases)
+        val s = RoomEventType.Aliases.toName()
         assertEquals("m.room.aliases", s)
     }
 }

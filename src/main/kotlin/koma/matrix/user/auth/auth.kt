@@ -1,43 +1,5 @@
 package koma.matrix.user.auth
 
-import koma.AuthFailure
-import koma.Failure
-import koma.HttpFailure
-import koma.IOFailure
-import koma.util.KResult as Result
-import koma.matrix.json.MoshiInstance
-import koma.util.coroutine.adapter.retrofit.await
-import koma.util.coroutine.adapter.retrofit.awaitMatrix
-import koma.util.coroutine.adapter.retrofit.extractMatrix
-import koma.util.failureOrThrow
-import koma.util.getOr
-import koma.util.onFailure
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import retrofit2.Call
-
-/**
- * the server may return instructions for further authentication
- */
-internal suspend fun <T : Any> Call<T>.awaitMatrixAuth(): Result<T, Failure> {
-    val r = this.await()
-    val r1 = r.getOrNull()
-    val res = if (r1 != null) r1 else {
-        return Result.failure(r.failureOrThrow())
-    }
-    val body = res.errorBody()
-    if (res.code() == 401 && body!=null) {
-        val unauth = withContext(Dispatchers.IO) {
-            Unauthorized.jsonAdapter.fromJson(body.source())
-        }
-        if (unauth != null) {
-            return Result.failure(AuthFailure(unauth, res.code(), res.message()))
-        }
-    }
-    return res.extractMatrix()
-}
-
-
 data class Unauthorized(
         // Need more stages
         val completed: List<String>?,
@@ -54,8 +16,6 @@ data class Unauthorized(
         }
     }
     companion object {
-        private val moshi = MoshiInstance.moshi
-        val jsonAdapter = moshi.adapter(Unauthorized::class.java)
     }
 }
 

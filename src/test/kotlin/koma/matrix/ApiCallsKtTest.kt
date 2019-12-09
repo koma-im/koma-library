@@ -3,7 +3,6 @@ package koma.matrix
 import koma.Server
 import koma.Timeout
 import koma.matrix.event.room_message.chat.TextMessage
-import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault
 import koma.matrix.room.naming.RoomId
 import koma.matrix.sync.Events

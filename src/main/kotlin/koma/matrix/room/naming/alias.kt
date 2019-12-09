@@ -1,7 +1,5 @@
 package koma.matrix.room.naming
 
-import com.squareup.moshi.FromJson
-import com.squareup.moshi.ToJson
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
 
@@ -32,12 +30,4 @@ data class RoomAlias(val full: String) {
             return RoomAlias(decoder.decodeString())
         }
     }
-}
-
-internal class RoomAliasAdapter {
-    @ToJson
-    fun toJson(value: RoomAlias): String = value.full
-
-    @FromJson
-    fun fromJson(json: String) = RoomAlias(json)
 }

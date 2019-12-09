@@ -1,6 +1,5 @@
 package koma
 
-import com.squareup.moshi.JsonDataException
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.features.ClientRequestException
 import koma.matrix.user.auth.Unauthorized
@@ -80,7 +79,6 @@ class AuthFailure(val status: Unauthorized, http_code: Int, http_message: String
 fun Throwable.toFailure(): KomaFailure {
     return when (this) {
         is SocketTimeoutException -> Timeout(cause = this)
-        is JsonDataException -> InvalidData("$this", this)
         is JsonDecodingException -> InvalidData(cause=this)
         is MissingFieldException -> InvalidData(cause = this)
         is NoTransformationFoundException -> InvalidData("Reponse may lack correct Content-Type",

@@ -1,6 +1,5 @@
 package koma.matrix.json
 
-import com.squareup.moshi.Types
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.room.naming.RoomAlias
 import kotlinx.serialization.ImplicitReflectionSerializer

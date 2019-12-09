@@ -1,6 +1,5 @@
 package koma.matrix.event.room_message.state
 
-import com.squareup.moshi.Json
 import koma.matrix.UserId
 import koma.matrix.event.room_message.chat.ImageInfo
 import koma.matrix.room.naming.RoomAlias
@@ -56,7 +55,7 @@ class RoomRedactContent(
 class RoomCreateContent(
         val creator: UserId,
         @SerialName("m.federate")
-        @Json(name = "m.federate") val federate: Boolean = true
+        val federate: Boolean = true
 )
 
 @Serializable

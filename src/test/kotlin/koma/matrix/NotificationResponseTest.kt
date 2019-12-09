@@ -1,6 +1,5 @@
 package koma.matrix
 
-import koma.matrix.json.MoshiInstance
 import koma.matrix.json.jsonDefault
 import kotlinx.serialization.json.content
 import org.junit.Test

@@ -1,7 +1,5 @@
 package koma.matrix.event
 
-import com.squareup.moshi.FromJson
-import com.squareup.moshi.ToJson
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
 
@@ -24,12 +22,4 @@ data class EventId(val full: String) {
             return EventId(decoder.decodeString())
         }
     }
-}
-
-internal class EventIdAdapter {
-    @ToJson
-    fun toJson(value: EventId): String = value.full
-
-    @FromJson
-    fun fromJson(json: String) = EventId(json)
 }
