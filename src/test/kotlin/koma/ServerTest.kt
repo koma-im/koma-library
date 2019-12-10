@@ -98,6 +98,37 @@ internal class ServerTest {
     }
 
     @Test
-    fun getApiURL() {
+    fun getPublicRooms() {
+        val server = MockWebServer()
+        server.start()
+        val base = server.url("mock")
+        val s = Server(base, KHttpClient.client)
+        val r1 = MockResponse().setBody(publicRoomsText)
+        r1.headers = r1.headers.newBuilder().set("Content-Type", "application/json").build()
+        server.enqueue(r1)
+        val n1 = runBlocking {
+            s.listPublicRooms("sin1", 22)
+        }
+        assert(n1.isSuccess) { "Expected $n1"}
     }
+
+    val publicRoomsText ="""{
+  "chunk": [
+    {
+      "aliases": [
+        "#murrays:cheese.bar"
+      ],
+      "avatar_url": "mxc://bleeker.street/CHEDDARandBRIE",
+      "guest_can_join": false,
+      "name": "CHEESE",
+      "num_joined_members": 37,
+      "room_id": "!ol19s:bleecker.street",
+      "topic": "Tasty tasty cheese",
+      "world_readable": true
+    }
+  ],
+  "next_batch": "p190q",
+  "prev_batch": "p1902",
+  "total_room_count_estimate": 115
+}"""
 }

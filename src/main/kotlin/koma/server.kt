@@ -11,9 +11,7 @@ import io.ktor.client.request.parameter
 import io.ktor.http.*
 import koma.matrix.*
 import koma.matrix.json.jsonDefault
-import koma.matrix.pagination.RoomBatch
 import koma.matrix.room.naming.ResolveRoomAliasResult
-import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
 import koma.network.media.MHUrl
 import koma.util.KResult
@@ -114,7 +112,7 @@ class Server(
     }
 
     suspend fun listPublicRooms(since: String?=null, limit: Int = 20
-    ): KResultF<RoomBatch<DiscoveredRoom>> {
+    ): KResultF<RoomListing> {
         return request(HttpMethod.Get) {
             url {
                 buildPath("publicRooms")

@@ -17,6 +17,15 @@ data class Chunked<T>(
 )
 
 @Serializable
+data class RoomListing(
+        // this is still the total number even if returned rooms are filtered
+        val total_room_count_estimate: Int,
+        // probaby can be null when the transferring is done
+        val next_batch: String? = null,
+        val chunk: List<DiscoveredRoom>
+)
+
+@Serializable
 data class DiscoveredRoom(
         val aliases: List<RoomAlias>? = null,
         val avatar_url: String? = null,

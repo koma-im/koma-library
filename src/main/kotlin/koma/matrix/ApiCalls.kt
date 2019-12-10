@@ -20,10 +20,8 @@ import koma.matrix.event.room_message.state.RoomAvatarContent
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.event.room_message.state.RoomNameContent
 import koma.matrix.json.Preserved
-import koma.matrix.json.RawJson
 import koma.matrix.json.RawSerializer
 import koma.matrix.pagination.FetchDirection
-import koma.matrix.pagination.RoomBatch
 import koma.matrix.publicapi.rooms.RoomDirectoryQuery
 import koma.matrix.room.admin.BanRoomResult
 import koma.matrix.room.admin.CreateRoomResult
@@ -42,7 +40,6 @@ import koma.util.coroutine.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import mu.KotlinLogging
-import okhttp3.RequestBody
 import java.io.File
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
@@ -298,7 +295,7 @@ class MatrixApi internal constructor(
         return putMessageEvent(roomId, RoomEventType.Message, tid, message)
     }
 
-    suspend fun findPublicRooms(query: RoomDirectoryQuery): KResult<RoomBatch<DiscoveredRoom>, KomaFailure>{
+    suspend fun findPublicRooms(query: RoomDirectoryQuery): KResult<RoomListing, KomaFailure>{
         return request(method = HttpMethod.Post) {
             buildUrl("publicRooms")
             jsonBody(query)

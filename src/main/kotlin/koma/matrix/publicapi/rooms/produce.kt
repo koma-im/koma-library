@@ -6,6 +6,7 @@ import koma.matrix.DiscoveredRoom
 import koma.matrix.MatrixApi
 import koma.util.failureOrThrow
 import koma.util.getOrThrow
+import koma.util.testFailure
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.produce
@@ -19,26 +20,22 @@ fun CoroutineScope.getPublicRooms(server: Server) = produce<DiscoveredRoom>(capa
     var since: String? = null
     var fetched = 0
     while (true) {
-        val call_res = server.listPublicRooms(since)
-        when {
-            call_res.isSuccess -> {
-                val roomBatch = call_res.getOrThrow()
-                val rooms = roomBatch.chunk
-                fetched += rooms.size
-                println("Fetched ${rooms.size} rooms ($fetched/${roomBatch.total_room_count_estimate})")
-                rooms.forEach { send(it) }
-                val next = roomBatch.next_batch
-                if (next == null || next == since) {
-                    println("Finished fetching public rooms $fetched in total")
-                    close()
-                    return@produce
-                }
-                since = next
+        val (roomBatch, failure, result) = server.listPublicRooms(since)
+        if (!result.testFailure(roomBatch, failure)) {
+            val rooms = roomBatch.chunk
+            fetched += rooms.size
+            logger.debug { "Fetched ${rooms.size} rooms ($fetched/${roomBatch.total_room_count_estimate})" }
+            rooms.forEach { send(it) }
+            val next = roomBatch.next_batch
+            if (next == null || next == since) {
+                println("Finished fetching public rooms $fetched in total")
+                close()
+                return@produce
             }
-            else -> {
-                println("Error fetching public rooms")
-                delay(1000)
-            }
+            since = next
+        } else {
+            logger.error { "Error fetching public rooms $failure" }
+            delay(1000)
         }
     }
 }
