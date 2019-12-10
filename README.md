@@ -2,15 +2,15 @@
 
 Implementation of matrix api in pure kotlin.
 
-Moshi is used for json serialization and deserialization.
+This is the library behind the desktop client
+[continuum](https://github.com/koma-im/continuum-desktop).
+`kotlinx.serialization` is used for json serialization and deserialization.
 Codegen is used to avoid reflection, reducing package size
-and improving performance.OkHttp is used for making
-network requests. Retrofit provides a nice interface for
+and improving performance.
+[Ktor](https://ktor.io) is used to interface with
 the api. `kotlinx-coroutines` are used to make the code
 both non-blocing and easy to read. Exception-handling is
-mostly done with
-[Result](https://github.com/kittinunf/Result).
-Combined they provide a lightweight and fast library.
+mostly done with Result type optimized with inline classes.
 
 ## Usage
 
