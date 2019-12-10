@@ -3,9 +3,6 @@ package koma.matrix.user.auth
 import koma.matrix.UserId
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
-import retrofit2.Call
-import retrofit2.http.Body
-
 
 sealed class RegisterData() {
     // Use empty request to get auth types
@@ -24,11 +21,6 @@ data class RegisterdUser(
         val user_id: UserId,
         val refresh_token: String? = null
 )
-
-interface MatrixRegisterApi {
-    // "_matrix/client/r0/register")
-    fun register(@Body data: Any): Call<RegisterdUser>
-}
 
 class Register(val server: HttpUrl, httpClient: OkHttpClient) {
     private var session: String? = null

@@ -2,6 +2,9 @@ package koma
 
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.features.ClientRequestException
+import io.ktor.client.features.ResponseException
+import io.ktor.client.request.HttpResponseData
+import io.ktor.client.response.readText
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
 import koma.util.given
@@ -84,7 +87,7 @@ fun Throwable.toFailure(): KomaFailure {
         is NoTransformationFoundException -> InvalidData("Reponse may lack correct Content-Type",
                 this)
         is IOException -> IOFailure(this)
-        is ClientRequestException -> {
+        is ResponseException -> {
             val response = this.response
             HttpFailure(response.status.value, response.status.description, this)
         }

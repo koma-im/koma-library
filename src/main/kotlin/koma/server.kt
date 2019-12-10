@@ -22,10 +22,6 @@ import koma.util.requestResult
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
-import retrofit2.Call
-import retrofit2.http.GET
-import retrofit2.http.Path
-import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
@@ -202,27 +198,6 @@ class Server(
         @Volatile
         private var sharedDownloader: Downloader? = null
     }
-}
-
-
-/**
- * no access_token needed
- */
-interface MatrixPublicApi {
-    @GET("profile/{userId}/avatar_url")
-    fun getAvatar(@Path("userId") user_id: UserId): Call<AvatarUrl>
-
-    @GET("profile/{userId}/displayname")
-    fun getDisplayName(@Path("userId") user_id: String
-    ): Call<DisplayName>
-
-    /**
-     * just list, no filter
-     */
-    @GET("publicRooms")
-    fun publicRooms(@Query("since") since: String? = null,
-                    @Query("limit") limit: Int = 20
-    ): Call<RoomBatch<DiscoveredRoom>>
 }
 
 enum class ThumbnailMethod {

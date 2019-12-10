@@ -1,5 +1,6 @@
 package koma.matrix.publicapi.rooms
 
+import koma.HttpFailure
 import koma.Server
 import koma.matrix.DiscoveredRoom
 import koma.matrix.MatrixApi
@@ -9,7 +10,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.delay
-import retrofit2.HttpException
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 @ExperimentalCoroutinesApi
 fun CoroutineScope.getPublicRooms(server: Server) = produce<DiscoveredRoom>(capacity = 1) {
@@ -63,8 +66,8 @@ fun CoroutineScope.findPublicRooms(term: String, service: MatrixApi) = produce()
             since = next
         } else {
             val error = call_res.failureOrThrow()
-            if (error is HttpException) {
-                println("Http Error ${error.code()} ${error.message()} finding public rooms with $term")
+            if (error is HttpFailure) {
+                logger.error { "Http Error $error finding public rooms with $term" }
                 close()
                 return@produce
             }

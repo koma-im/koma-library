@@ -43,8 +43,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import mu.KotlinLogging
 import okhttp3.RequestBody
-import retrofit2.Call
-import retrofit2.http.*
 import java.io.File
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
@@ -62,107 +60,6 @@ data class SendResult(
 
 @Serializable
 class UpdateAvatarResult()
-
-/**
- * Api that requires access_token
- * the api only needs to be defined as an interface
- * retrofit/moshi handles the rest
- */
-interface MatrixAccessApiDef {
-    @POST("rooms/{roomId}/join")
-    fun joinRoom(@Path("roomId") roomId: String,
-                 @Query("access_token") token: String)
-            : Call<JoinRoomResult>
-
-    @POST("rooms/{roomId}/leave")
-    fun leaveRoom(@Path("roomId") roomId: String,
-                  @Query("access_token") token: String)
-            : Call<LeaveRoomResult>
-
-    @PUT("directory/room/{roomAlias}")
-    fun putRoomAlias(@Path("roomAlias") roomAlias: String,
-                     @Query("access_token") token: String,
-                     @Body roomInfo: RoomInfo): Call<EmptyResult>
-
-    @DELETE("directory/room/{roomAlias}")
-    fun deleteRoomAlias(@Path("roomAlias") roomAlias: String,
-                        @Query("access_token") token: String
-    ): Call<EmptyResult>
-
-    @POST("publicRooms")
-    fun findPublicRooms(
-            @Query("access_token") token: String,
-            @Body query: RoomDirectoryQuery
-    ): Call<RoomBatch<DiscoveredRoom>>
-
-    @GET("rooms/{roomId}/messages")
-    fun getMessages(
-            @Path("roomId") roomId: String,
-            @Query("access_token") token: String,
-            @Query("from") from: String,
-            @Query("dir") dir: FetchDirection,
-            // optional params
-            @Query("limit") limit: Int = 100,
-            @Query("to") to: String? = null
-    ): Call<Chunked<RawJson<RoomEvent>>>
-
-    @POST("rooms/{roomId}/invite")
-    fun inviteUser(@Path("roomId") roomId: String,
-                   @Query("access_token") token: String,
-                   @Body invitation: InviteUserData
-    ): Call<InviteMemResult>
-
-    @POST("rooms/{roomId}/ban")
-    fun banUser(@Path("roomId") roomId: String,
-                @Query("access_token") token: String,
-                @Body banishment: MemberBanishment
-    ): Call<BanRoomResult>
-
-    @PUT("rooms/{roomId}/send/{eventType}/{txnId}")
-    fun sendMessageEvent(
-            @Path("roomId") roomId: RoomId,
-            @Path("eventType") eventType: RoomEventType,
-            @Path("txnId") txnId: String,
-            @Query("access_token") token: String,
-            @Body message: M_Message): Call<SendResult>
-
-    @PUT("rooms/{roomId}/state/{eventType}")
-    fun sendStateEvent(
-            @Path("roomId") roomId: RoomId,
-            @Path("eventType") type: RoomEventType,
-            @Query("access_token") token: String,
-            @Body content: Any): Call<SendResult>
-
-    @GET("rooms/{roomId}/state/{eventType}")
-    fun getStateEvent(
-            @Path("roomId") roomId: RoomId,
-            @Path("eventType") type: RoomEventType,
-            @Query("access_token") token: String
-    ): Call<Map<String, Any>>
-
-    @GET("rooms/{roomId}/context/{eventId}")
-    fun getEventContext(@Path("roomId") roomId: String,
-                 @Path("eventId") eventId: String,
-                        @Query("limit") limit: Int = 2,
-                 @Query("access_token") token: String
-    ): Call<ContextResponse>
-
-    @PUT("profile/{userId}/displayname")
-    fun updateDisplayName(@Path("userId") user_id: String,
-                     @Query("access_token") token: String,
-                     @Body body: DisplayName): Call<EmptyResult>
-}
-
-/**
- * usually at path _matrix/media/r0/
- */
-internal interface MatrixMediaApiDef {
-    @POST("upload")
-    fun uploadMedia(@Header("Content-Type") type: String,
-                    @Query("access_token") token: String,
-                    @Body content: RequestBody
-    ): Call<UploadResponse>
-}
 
 class MatrixApi internal constructor(
         private val token: String,
@@ -401,7 +298,7 @@ class MatrixApi internal constructor(
         return putMessageEvent(roomId, RoomEventType.Message, tid, message)
     }
 
-    suspend fun findPublicRooms(query: RoomDirectoryQuery): Result<RoomBatch<DiscoveredRoom>, Failure>{
+    suspend fun findPublicRooms(query: RoomDirectoryQuery): KResult<RoomBatch<DiscoveredRoom>, KomaFailure>{
         return request(method = HttpMethod.Post) {
             buildUrl("publicRooms")
             jsonBody(query)
