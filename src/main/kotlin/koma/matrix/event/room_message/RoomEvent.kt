@@ -222,7 +222,7 @@ class MRoomName(
         //val age: Long?,
         override val event_id: EventId,
         override val origin_server_ts: Long,
-        val prev_content:JsonObject?,
+        val prev_content:JsonObject? = null,
         val sender: UserId,
         val state_key: String?= null,
         val txn_id: String?= null,

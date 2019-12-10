@@ -21,7 +21,7 @@ data class DiscoveredRoom(
         val aliases: List<RoomAlias>? = null,
         val avatar_url: String? = null,
         val guest_can_join: Boolean,
-        val name: String?,
+        val name: String? = null,
         val num_joined_members: Int,
         val room_id: RoomId,
         val topic: String? = null,

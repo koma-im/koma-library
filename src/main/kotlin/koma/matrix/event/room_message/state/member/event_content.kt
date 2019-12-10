@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonObject
 @Serializable
 class RoomMemberContent(
         val membership: Membership,
-        val avatar_url: String?,
+        val avatar_url: String? = null,
         val displayname: String? = null,
         val is_direct: Boolean? = null,
         val third_party_invite: Invite? = null,

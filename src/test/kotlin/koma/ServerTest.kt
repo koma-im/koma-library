@@ -96,4 +96,8 @@ internal class ServerTest {
         val p1 = url1.pathSegments
         assertEquals(listOf("profile", user1, "displayname"), p1.drop(4))
     }
+
+    @Test
+    fun getApiURL() {
+    }
 }

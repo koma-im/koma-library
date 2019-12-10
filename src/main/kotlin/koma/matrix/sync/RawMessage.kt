@@ -10,7 +10,7 @@ import kotlinx.serialization.json.JsonObject
  */
 @Serializable
 data class RawMessage(
-        val age: Long?,
+        val age: Long? = null,
         val event_id: String,
         val origin_server_ts: Long,
         val prev_content: JsonObject? = null,

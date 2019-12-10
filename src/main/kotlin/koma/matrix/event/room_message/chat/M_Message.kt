@@ -125,7 +125,7 @@ class ImageMessage(
 class LocationMessage(
         val geo_uri: String,
         val msgtype: String = "m.location",
-        val info: LocationInfo?,
+        val info: LocationInfo? = null,
         override val body: String
 ) : M_Message()
 

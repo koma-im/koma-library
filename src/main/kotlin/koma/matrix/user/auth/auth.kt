@@ -2,13 +2,13 @@ package koma.matrix.user.auth
 
 data class Unauthorized(
         // Need more stages
-        val completed: List<String>?,
+        val completed: List<String>? = null,
         // Try again, for example, incorrect passwords
-        val errcode: String?,
-        val error: String?,
+        val errcode: String? = null,
+        val error: String? = null,
         val flows: List<AuthFlow<String>>,
         val params: Map<String, Any>,
-        val session: String?
+        val session: String? = null
 ) {
     fun flows(): List<AuthFlow<AuthType>> {
         return flows.map { flow ->
