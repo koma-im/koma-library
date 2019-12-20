@@ -10,11 +10,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import okhttp3.*
-import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.LinkedHashMap
-import kotlin.math.absoluteValue
-import kotlin.system.measureTimeMillis
 
 private val logger = KotlinLogging.logger {}
 
@@ -132,17 +129,17 @@ internal class Downloader(
 /**
  * concurrent access not allowed
  */
-private class StackMap<K, V: Any>{
-    private val keys = ArrayDeque<K>()
-    private val map = mutableMapOf<K, V>()
+private class StackMap<K, V: Any> {
+    private val keys = mutableListOf<K>()
+    private val map = linkedMapOf<K, V>()
     fun push(k: K, value: V) {
         val pfe = map.putIfAbsent(k, value)
-        assert(pfe == null) { "stacking duplicate entry"}
-        keys.push(k)
+        assert(pfe == null) { "stacking duplicate entry" }
+        keys.add(k)
     }
     fun popOrNull(): Pair<K, V>?{
         if (keys.isEmpty()) return null
-        val k =keys.pop()
+        val k = keys.removeAt(keys.lastIndex)
         return k to map.remove(k)!!
     }
     fun get(key: K): V? {

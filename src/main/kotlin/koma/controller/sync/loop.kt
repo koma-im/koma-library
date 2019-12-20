@@ -1,20 +1,14 @@
 package koma.controller.sync
 
 import koma.Failure
-import koma.IOFailure
-import koma.Timeout
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
 import koma.util.testFailure
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
-import kotlinx.coroutines.time.delay
 import mu.KotlinLogging
-import java.net.SocketTimeoutException
-import java.time.Instant
 import kotlin.time.MonoClock
-import kotlin.time.milliseconds
 import kotlin.time.seconds
 import koma.util.KResult as Result
 
@@ -25,12 +19,13 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoroutineScope.detectTimeLeap(): Channel<Unit> {
     val timeleapSignal = Channel<Unit>(Channel.CONFLATED)
-    var prev = Instant.now().epochSecond
+    var prev = MonoClock.markNow()
     launch {
         while (true) {
             delay(1000)
-            val now = Instant.now().epochSecond
-            if (now - prev > 20) {
+            val elapsed = prev.elapsedNow()
+            val now = prev + elapsed
+            if (elapsed.inSeconds > 20) {
                 logger.info { "System time leapt from $prev to $now" }
                 timeleapSignal.send(Unit)
             }

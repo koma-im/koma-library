@@ -35,6 +35,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2")
     implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.14.0")
+    implementation("org.jetbrains.kotlinx", "atomicfu", "0.14.1")
     implementation("io.ktor", "ktor-client-okhttp", ktorVersion)
     implementation("io.ktor", "ktor-client-core", ktorVersion)
     implementation("io.ktor", "ktor-client-serialization-jvm", ktorVersion)

@@ -41,11 +41,12 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import mu.KotlinLogging
 import java.io.File
-import java.util.*
-import java.util.concurrent.atomic.AtomicLong
+import java.util.Optional
 import kotlin.time.Duration
 import kotlin.time.seconds
 import koma.util.KResult
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.updateAndGet
 import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
@@ -63,11 +64,11 @@ class MatrixApi internal constructor(
         val userId: UserId,
         val server: Server
 ) {
-    private val txnId = AtomicLong()
+    private val txnId = atomic(0L)
     private fun getTxnId(): String {
         val t = System.currentTimeMillis()
-        val id = txnId.accumulateAndGet(t) { value, given ->
-            if (given > value) given else value + 1
+        val id = txnId.updateAndGet { value ->
+            if (t > value) t else value + 1
         }
         return id.toString()
     }

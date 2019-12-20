@@ -1,10 +1,7 @@
 package koma.util.coroutine.adapter.okhttp
 
 import koma.*
-import koma.util.testFailure
 import koma.util.KResult as Result
-import koma.util.KResult
-import koma.util.coroutine.adapter.retrofit.toMatrixFailure
 import kotlinx.coroutines.*
 import okhttp3.Call
 import okhttp3.Callback
