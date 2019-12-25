@@ -21,12 +21,37 @@ import kotlinx.serialization.json.JsonOutput
 @Serializable
 data class JoinedRoom(
         val unread_notifications: UnreadNotifications? = null,
-
+        val summary: RoomSummary? = null,
         val account_data: Events<GeneralEvent>,
         val ephemeral: Events<EphemeralRawEvent>,
         val state: Events<RoomEvent>,
         val timeline: Timeline<@Serializable(with = RawSerializer::class) Preserved<RoomEvent>>
-)
+) {
+    @Serializable
+    class RoomSummary(
+            /**
+             * Required if the room's m.room.name or m.room.canonical_alias state events are unset or empty.
+              */
+            @SerialName("m.heroes")
+            val heros: List<UserId>? = null,
+            /**
+             * The number of users with membership of join
+             * If this field has not changed since the last sync, it may be omitted. Required otherwise.
+             */
+            @SerialName("m.joined_member_count")
+            val joined_count: Int? = null,
+            /**
+             * The number of users with membership of invite.
+             * If this field has not changed since the last sync, it may be omitted. Required otherwise.
+             */
+            @SerialName("m.invited_member_count")
+            val invited_count: Int? = null
+    ) {
+        override fun toString(): String {
+            return "RoomSummary(heros=$heros, joined_count=$joined_count, invited_count=$invited_count)"
+        }
+    }
+}
 
 @Serializable
 data class  Timeline<T>(

@@ -35,6 +35,7 @@ import koma.matrix.room.participation.join.JoinRoomResult
 import koma.matrix.sync.SyncResponse
 import koma.matrix.user.AvatarUrl
 import koma.matrix.user.identity.DisplayName
+import koma.matrix.user.presence.UserPresenceType
 import koma.util.*
 import koma.util.coroutine.withTimeout
 import kotlinx.serialization.Serializable
@@ -308,7 +309,8 @@ class MatrixApi internal constructor(
     suspend fun sync(since: String?
                             , timeout: Duration = 50.seconds
                             , full_state: Boolean = false
-                            , filter: String? = null
+                     , filter: String? = null,
+                     set_presence: UserPresenceType? = null
                             , networkTimeout: Duration = timeout + 10.seconds
     ): Result<SyncResponse, KomaFailure> {
         val (success,failure, result) =withTimeout(networkTimeout) {
@@ -318,6 +320,7 @@ class MatrixApi internal constructor(
                 parameter("timeout", timeout.toLongMilliseconds())
                 parameter("full_state", full_state)
                 parameter("filter", filter)
+                parameter("set_presence", set_presence)
             }
         }
         if (result.testFailure(success, failure)) {

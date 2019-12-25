@@ -33,5 +33,11 @@ enum class UserPresenceType {
     @SerialName("offline")
     Offline,
     @SerialName("unavailable")
-    Unavailable,
+    Unavailable;
+
+    override fun toString() = when (this) {
+        Online -> "online"
+        Offline -> "offline"
+        Unavailable -> "unavailable"
+    }
 }
