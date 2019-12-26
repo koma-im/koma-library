@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.io.EOFException
 import java.net.SocketTimeoutException
-import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -293,7 +292,25 @@ internal class MatrixApiTest {
     }
 
     @Test
-    fun updateAvatar() {
+    fun deleteRoomAlias() {
+        val mockWebServer = MockWebServer()
+        mockWebServer.start()
+        mockWebServer.enqueue(MockResponse()
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("""{}"""))
+        val base = mockWebServer.url("mock")
+        val matrixServer = Server(base, fastClient)
+        val api = matrixServer.account(UserId("u"), "token1")
+        val n= runBlocking {
+            api.deleteRoomAlias("test4alias")
+        }
+        assert(n.isSuccess)
+        val req = mockWebServer.takeRequest()
+        assertEquals("DELETE", req.method)
+        assertEquals("/mock/_matrix/client/r0/directory/room/test4alias", req.path?.substringBefore('?'))
+
+        val url = req.requestUrl!!
+        assertEquals("token1", url.queryParameter("access_token"))
     }
 
     @Test
