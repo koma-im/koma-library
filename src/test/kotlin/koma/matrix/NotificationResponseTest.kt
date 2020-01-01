@@ -19,7 +19,7 @@ internal class NotificationResponseTest {
         assertEquals("hcbvkzxhcvb", notif1.profile_tag)
         assert(notif1.read)
         assertEquals(1475508881945, notif1.ts)
-        assertEquals("""$143273582443PhrSn:example.org""", notif1.event.event_id.full)
+        assertEquals("""$143273582443PhrSn:example.org""", notif1.event.event_id)
 
         val notifRes2 = jsonDefault.parse(NotificationResponse.serializer(), exampl2)
         assertEquals("1000116789", notifRes2.next_token)
@@ -31,13 +31,13 @@ internal class NotificationResponseTest {
         val notif2 = jsonDefault.parse(NotificationResponse.Notification.serializer(), notificationString2)
         assertEquals("!room2:example.com", notif2.room_id.full)
         val event = notif2.event
-        assertEquals( "$156141234550951DWylX:example.com", notif2.event.event_id.full)
+        assertEquals( "$156141234550951DWylX:example.com", notif2.event.event_id)
         val unsigned = event.unsigned
         assertEquals(51106879, unsigned?.age)
         val prevEvent = unsigned?.prev_content
         assert(prevEvent is NotificationResponse.Event)
         prevEvent as NotificationResponse.Event
-        assertEquals("$123prev:example.com", prevEvent.event_id.full)
+        assertEquals("$123prev:example.com", prevEvent.event_id)
     }
     val notificationString2 = """
         {

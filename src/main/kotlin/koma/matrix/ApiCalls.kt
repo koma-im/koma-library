@@ -129,7 +129,7 @@ class MatrixApi internal constructor(
 
     suspend fun getEventContext(roomid: RoomId, eventId: EventId, limit: Int = 2): KResultF<ContextResponse> {
         return request(method = HttpMethod.Get) {
-            buildUrl("rooms", roomid.full, "context", eventId.full)
+            buildUrl("rooms", roomid.full, "context", eventId)
             parameter("limit", limit)
         }
     }
