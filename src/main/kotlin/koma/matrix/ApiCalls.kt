@@ -14,6 +14,7 @@ import koma.*
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
 import koma.matrix.event.room_message.RoomEvent
+import koma.matrix.event.room_message.RoomEventSerializer
 import koma.matrix.event.room_message.RoomEventType
 import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.event.room_message.state.RoomAvatarContent
@@ -111,13 +112,29 @@ class MatrixApi internal constructor(
         }
     }
 
-    suspend fun getRoomMessages(roomId: RoomId, from: String, direction: FetchDirection, to: String?=null
-    ): KResultF<Chunked<@Serializable(with=RawSerializer::class) Preserved<RoomEvent>>> {
+    suspend fun getRoomMessages(roomId: RoomId,
+                                /**
+                                 * Required.
+                                 */
+                                from: String,
+                                /**
+                                 * Required. The direction to return events from. One of: ["b", "f"]
+                                 */
+                                direction: FetchDirection,
+                                limit: Int = 10,
+                                /**
+                                 * A JSON RoomEventFilter to filter returned events with.
+                                 */
+                                filter: String? = null,
+                                to: String?=null
+    ): KResultF<MessageChunks> {
         return request(method = HttpMethod.Get) {
             buildUrl("rooms", roomId.full, "messages")
             parameter("from", from)
             parameter("to", to)
             parameter("dir", direction.toName())
+            parameter("limit", limit)
+            parameter("filter", filter)
         }
     }
 

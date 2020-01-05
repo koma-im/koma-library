@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-version = "0.9.19"
+version = "0.9.20"
 
 plugins {
     id("java")

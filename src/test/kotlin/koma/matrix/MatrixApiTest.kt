@@ -1,5 +1,6 @@
 package koma.matrix
 
+import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.engine.okhttp.OkHttpEngine
 import io.ktor.content.ByteArrayContent
 import io.ktor.http.ContentType
@@ -183,16 +184,27 @@ internal class MatrixApiTest {
         }
         assert(n.isFailure)
         val f = n.failureOrThrow()
-        assertTrue(f is IOFailure) { "fail $f"}
-        val i = (f as IOFailure)
-        assert(i.throwable is EOFException) //empty response
+        assertTrue(f is InvalidData) { "fail $f"}
+        val i = (f as InvalidData)
+        assert(i.cause is NoTransformationFoundException)
         val req = server.takeRequest()
         val url = req.requestUrl!!
         assertEquals(roomId, url.pathSegments[5])
         assertEquals("token", url.queryParameter("access_token"))
         assertEquals(from, url.queryParameter("from"))
         assertEquals("b", url.queryParameter("dir"))
-        assertEquals("100", url.queryParameter("limit"))
+        assertEquals("10", url.queryParameter("limit"))
+
+        server.enqueue(MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setBody(messagesResponse)
+        )
+        val messages = runBlocking {
+            api.getRoomMessages(RoomId(roomId), from, FetchDirection.Backward)
+        }
+        assert(messages.isSuccess) { "Room $messages"}
+        val m = messages.getOrThrow()
+        assertEquals("$143273582443PhrSn:example.org", m.chunk[0].value.event_id)
     }
 
     @Test
@@ -399,6 +411,75 @@ internal class MatrixApiTest {
         assertEquals("hcbvkzxhcvb", notification1.notifications[0].profile_tag)
     }
 
+    companion object {
+        val messagesResponse = """
+        {
+          "start": "t47429-4392820_219380_26003_2265",
+          "end": "t47409-4357353_219380_26003_2265",
+          "chunk": [
+            {
+              "content": {
+                "body": "This is an example text message",
+                "msgtype": "m.text",
+                "format": "org.matrix.custom.html",
+                "formatted_body": "<b>This is an example text message</b>"
+              },
+              "type": "m.room.message",
+              "event_id": "${'$'}143273582443PhrSn:example.org",
+              "room_id": "!636q39766251:example.com",
+              "sender": "@example:example.org",
+              "origin_server_ts": 1432735824653,
+              "unsigned": {
+                "age": 1234
+              }
+            },
+            {
+              "content": {
+                "name": "The room name"
+              },
+              "type": "m.room.name",
+              "event_id": "${'$'}143273582443PhrSn:example.org",
+              "room_id": "!636q39766251:example.com",
+              "sender": "@example:example.org",
+              "origin_server_ts": 1432735824653,
+              "unsigned": {
+                "age": 1234
+              },
+              "state_key": ""
+            },
+            {
+              "content": {
+                "body": "Gangnam Style",
+                "url": "mxc://example.org/a526eYUSFFxlgbQYZmo442",
+                "info": {
+                  "thumbnail_url": "mxc://example.org/FHyPlCeYUSFFxlgbQYZmoEoe",
+                  "thumbnail_info": {
+                    "mimetype": "image/jpeg",
+                    "size": 46144,
+                    "w": 300,
+                    "h": 300
+                  },
+                  "w": 480,
+                  "h": 320,
+                  "duration": 2140786,
+                  "size": 1563685,
+                  "mimetype": "video/mp4"
+                },
+                "msgtype": "m.video"
+              },
+              "type": "m.room.message",
+              "event_id": "${'$'}143273582443PhrSn:example.org",
+              "room_id": "!636q39766251:example.com",
+              "sender": "@example:example.org",
+              "origin_server_ts": 1432735824653,
+              "unsigned": {
+                "age": 1234
+              }
+            }
+          ]
+        }
+    """.trimIndent()
+    }
     val notificationResponse1 = """
         {
   "next_token": "abcdef",
