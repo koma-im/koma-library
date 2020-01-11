@@ -226,9 +226,17 @@ class MatrixApi internal constructor(
         }
     }
 
+    /**
+     * it doesn't mean the room id would appear in rooms.leave in the next reponse of sync
+     */
     suspend fun leavingRoom(roomid: RoomId): KResultF<LeaveRoomResult> {
         return request(method = HttpMethod.Post) {
             buildUrl("rooms", roomid.full, "leave")
+        }
+    }
+    suspend fun forgetRoom(roomid: RoomId): KResultF<LeaveRoomResult> {
+        return request(method = HttpMethod.Post) {
+            buildUrl("rooms", roomid.full, "forget")
         }
     }
 
