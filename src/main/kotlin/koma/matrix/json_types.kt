@@ -29,6 +29,32 @@ data class RoomListing(
 )
 
 @Serializable
+data class RegistrationData(
+        val password: String,
+        val username: String? = null,
+        val auth: AuthenticationData? = null,
+        val device_id: String? = null,
+        val initial_device_display_name: String? = null
+)
+
+@Serializable
+data class AuthenticationData(
+        val type: String,
+        val session: String ? = null
+)
+
+
+@Serializable
+data class RegistrationResponse(
+        val user_id: UserId,
+        /**
+         * Required if the inhibit_login option is false.
+         */
+        val access_token: String? = null,
+        val device_id: String? = null
+)
+
+@Serializable
 data class DiscoveredRoom(
         val aliases: List<RoomAlias>? = null,
         val avatar_url: String? = null,

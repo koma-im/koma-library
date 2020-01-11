@@ -15,8 +15,11 @@ import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
 import java.io.EOFException
+import java.net.InetSocketAddress
+import java.net.Proxy
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
+import kotlin.test.Ignore
 
 internal class ServerTest {
 
@@ -112,6 +115,24 @@ internal class ServerTest {
             s.listPublicRooms("sin1", 22)
         }
         assert(n1.isSuccess) { "Expected $n1"}
+    }
+
+    @Ignore("need server set up externally") @Test
+    fun doRegisterWithPassword() {
+        val base = "http://localhost:8008".toHttpUrlOrNull()!!
+        val client = KHttpClient.client.newBuilder().proxy(
+                Proxy(Proxy.Type.HTTP,
+                        InetSocketAddress.createUnresolved("localhost", 8080))
+        ).build()
+        val s = Server(base, client)
+        val r1 = MockResponse().setBody(publicRoomsText)
+        r1.headers = r1.headers.newBuilder().set("Content-Type", "application/json").build()
+        val n1 = runBlocking {
+            s.registerWithPassword("pwtest4")
+        }
+        assert(n1.isSuccess) { "Fail $n1"}
+        val registered = n1.getOrThrow()
+        assertNotNull(registered.access_token)
     }
 
     val publicRoomsText ="""{

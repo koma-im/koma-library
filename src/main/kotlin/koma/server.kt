@@ -10,13 +10,15 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.parameter
 import io.ktor.http.*
 import koma.matrix.*
-import koma.matrix.json.jsonDefault
+import koma.matrix.json.jsonDefaultConf
+import koma.matrix.json.jsonOmit
 import koma.matrix.room.naming.ResolveRoomAliasResult
 import koma.matrix.user.identity.DisplayName
 import koma.network.media.MHUrl
 import koma.util.KResult
 import koma.util.given
 import koma.util.requestResult
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -57,7 +59,7 @@ class Server(
 
     init {
         val contentTypes = listOf(ContentType.Application.Json, ContentType.Text.Html)
-        val kserializer = KotlinxSerializer(jsonDefault)
+        val kserializer = KotlinxSerializer(jsonOmit)
         ktorHttpClient = HttpClient(OkHttp) {
             install(JsonFeature) {
                 acceptContentTypes = contentTypes
@@ -129,6 +131,23 @@ class Server(
                 buildPath("login")
             }
             body = userpass
+        }
+    }
+
+    suspend fun registerWithPassword(password: String,
+                                     username: String? = null
+    ): KResultF<RegistrationResponse> {
+        val data = RegistrationData(
+                password = password,
+                username = username,
+                auth = AuthenticationData(type = "m.login.dummy")
+        )
+        return request(HttpMethod.Post) {
+            contentType(ContentType.Application.Json)
+            url {
+                buildPath("register")
+            }
+            body = data
         }
     }
 
