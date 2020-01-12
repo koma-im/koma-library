@@ -87,7 +87,7 @@ class Server(
         return MatrixApi(token, userId, this)
     }
 
-    private suspend inline fun <reified T> request(
+    private suspend inline fun <reified T: Any> request(
             method: HttpMethod,
             crossinline block: HttpRequestBuilder.() -> Unit
     ): KResult<T, KomaFailure>  {

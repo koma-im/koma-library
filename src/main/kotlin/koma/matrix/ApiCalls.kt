@@ -87,7 +87,7 @@ class MatrixApi internal constructor(
         this.body = body
     }
 
-    internal suspend inline fun <reified T> request(
+    internal suspend inline fun <reified T: Any> request(
             method: HttpMethod,
             crossinline block: HttpRequestBuilder.() -> Unit
     ): KResult<T, KomaFailure>  {
@@ -187,7 +187,7 @@ class MatrixApi internal constructor(
     suspend fun updateAvatar(user_id: UserId, avatarUrl: AvatarUrl
     ): KResultF<UpdateAvatarResult> {
         val u = user_id.full
-        return runCatch {
+        val (success, ex, result) = runCatch {
             server.ktorHttpClient.put<UpdateAvatarResult> {
                 contentType(ContentType.Application.Json)
                 buildUrl("profile", u, "avatar_url")
@@ -196,8 +196,11 @@ class MatrixApi internal constructor(
                 }
                 body = avatarUrl
             }
-        }.mapFailure {
-            it.toFailure()
+        }
+        if (result.testFailure(success, ex)) {
+            return KResult.failure(ex.toFailure())
+        } else {
+            return KResult.success(success)
         }
     }
 
@@ -262,7 +265,7 @@ class MatrixApi internal constructor(
         }
     }
 
-    internal suspend inline fun<reified T> getStateEvent(roomId: RoomId, type: RoomEventType): KResult<T, KomaFailure> {
+    internal suspend inline fun<reified T: Any> getStateEvent(roomId: RoomId, type: RoomEventType): KResult<T, KomaFailure> {
         return request(method = HttpMethod.Get) {
             buildUrl("rooms", roomId.full, "state", type.toName())
         }
@@ -307,7 +310,7 @@ class MatrixApi internal constructor(
             return Result.success(Optional.ofNullable(r["url"]?.toString()))
         }
     }
-    internal suspend inline fun<reified T> putMessageEvent(
+    internal suspend inline fun<reified T: Any> putMessageEvent(
             roomId: RoomId, type: RoomEventType, txnId: String, body: M_Message
     ): KResult<T, KomaFailure> {
         return request(method = HttpMethod.Put) {

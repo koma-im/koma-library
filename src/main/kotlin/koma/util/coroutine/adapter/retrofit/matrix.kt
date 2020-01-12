@@ -1,26 +1,18 @@
 package koma.util.coroutine.adapter.retrofit
 
-import koma.*
-import koma.matrix.json.jsonDefault
-import koma.matrix.json.parseResult
-import koma.util.testFailure
+import io.ktor.http.HttpStatusCode
+import koma.MatrixFailure
 import kotlinx.serialization.json.JsonObject
-import mu.KotlinLogging
+import kotlinx.serialization.json.contentOrNull
 
-private val logger = KotlinLogging.logger {}
-
-internal fun tryGetMatrixFailure(s: String, code: Int, message: String): MatrixFailure? {
-    val (m, e, result) = jsonDefault.parseResult(JsonObject.serializer(), s)
-    if (result.testFailure(m ,e)) {
-        logger.warn { "Is not json, $s. Exception: $e" }
-        return null
+internal fun JsonObject.toMatrixFailure(statusCode: HttpStatusCode,
+                                        http_body: String
+): MatrixFailure? {
+    val content = this.content.toMutableMap()
+    val m = this.mapValuesTo(LinkedHashMap()) {
+        kotlin.runCatching { it.value.primitive }.getOrNull()
     }
-    return m.toMatrixFailure(code, message)
-}
-
-internal fun JsonObject.toMatrixFailure(code: Int, message: String): MatrixFailure? {
-    val j: MutableMap<String, Any> = this.toMutableMap()
-    val c = j.remove("errcode")?.toString() ?: return null
-    val e = j.remove("error")?.toString() ?: return null
-    return MatrixFailure(c, e, j, code, message)
+    val c = content.remove("errcode")?.contentOrNull ?: return null
+    val e = content.remove("error")?.contentOrNull ?: return null
+    return MatrixFailure(c, e, content, statusCode, http_body)
 }

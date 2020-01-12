@@ -20,16 +20,19 @@ fun <T, R> T.given(v: R?, f: T.(R)->T): T {
     }
 }
 
-internal suspend inline fun <reified T> HttpClient.requestResult(
+internal suspend inline fun <reified T: Any> HttpClient.requestResult(
         method: HttpMethod,
         crossinline block: HttpRequestBuilder.() -> Unit
 ): KResult<T, KomaFailure> {
-    return runCatch {
+   val (success, ex, result) = runCatch {
         this.request<T> {
             this.method = method
             this.block()
         }
-    }.mapFailure {
-        it.toFailure()
+    }
+    return if (result.testFailure(success, ex)) {
+        KResult.failure(ex.toFailure())
+    } else {
+        KResult.success(success)
     }
 }

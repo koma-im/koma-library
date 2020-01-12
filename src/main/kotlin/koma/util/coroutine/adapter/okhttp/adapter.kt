@@ -1,5 +1,6 @@
 package koma.util.coroutine.adapter.okhttp
 
+import io.ktor.http.HttpStatusCode
 import koma.*
 import koma.util.KResult as Result
 import kotlinx.coroutines.*
@@ -40,6 +41,6 @@ fun Response.extract(): Result<ResponseBody, KomaFailure> {
         else Result.of(body)
     } else {
         body()?.close()
-        Result.failure(HttpFailure(this.code(), this.message()))
+        Result.failure(HttpFailure(HttpStatusCode(this.code(), this.message())))
     }
 }
