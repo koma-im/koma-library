@@ -40,6 +40,7 @@ dependencies {
     implementation("io.ktor", "ktor-client-core", ktorVersion)
     implementation("io.ktor", "ktor-client-serialization-jvm", ktorVersion)
     implementation("io.github.microutils:kotlin-logging:1.6.22")
+    implementation("org.slf4j", "slf4j-api", "1.8.0-beta2")
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
