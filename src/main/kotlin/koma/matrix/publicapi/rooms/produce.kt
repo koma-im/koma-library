@@ -11,15 +11,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-@ExperimentalCoroutinesApi
+@Deprecated("may fail with http 401")
 fun CoroutineScope.getPublicRooms(server: Server) = produce<DiscoveredRoom>(capacity = 1) {
     var since: String? = null
     var fetched = 0
-    while (true) {
+    while (isActive) {
         val (roomBatch, failure, result) = server.listPublicRooms(since)
         if (!result.testFailure(roomBatch, failure)) {
             val rooms = roomBatch.chunk
@@ -40,13 +41,13 @@ fun CoroutineScope.getPublicRooms(server: Server) = produce<DiscoveredRoom>(capa
     }
 }
 
-@ExperimentalCoroutinesApi
+@Deprecated("use Flow")
 fun CoroutineScope.findPublicRooms(term: String, service: MatrixApi) = produce() {
     var since: String? = null
     var fetched = 0
     while (true) {
         val call_res = service.findPublicRooms(
-                RoomDirectoryQuery(RoomDirectoryFilter(term), since = since)
+                RoomDirectoryQuery(RoomDirectoryFilter(term), since = since, limit=20)
                 )
         if (call_res.isSuccess) {
             val roomBatch = call_res.getOrThrow()

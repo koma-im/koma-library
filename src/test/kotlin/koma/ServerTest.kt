@@ -117,6 +117,17 @@ internal class ServerTest {
         assert(n1.isSuccess) { "Expected $n1"}
     }
 
+    @Ignore("need local server that does not require auth")
+    @Test
+    fun testGetPublicRoomsLocal() {
+        val base = "http://localhost:8008".toHttpUrlOrNull()!!
+        val s = Server(base, KHttpClient.client)
+        val n1 = runBlocking {
+            s.listPublicRooms(limit=22)
+        }
+        assert(n1.isSuccess) { "Expected $n1"}
+    }
+
     @Ignore("need server set up externally") @Test
     fun doRegisterWithPassword() {
         val base = "http://localhost:8008".toHttpUrlOrNull()!!

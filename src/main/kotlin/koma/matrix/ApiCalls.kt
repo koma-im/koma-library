@@ -13,16 +13,13 @@ import io.ktor.http.takeFrom
 import koma.*
 import koma.matrix.event.EventId
 import koma.matrix.event.context.ContextResponse
-import koma.matrix.event.room_message.RoomEvent
-import koma.matrix.event.room_message.RoomEventSerializer
 import koma.matrix.event.room_message.RoomEventType
 import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.event.room_message.state.RoomAvatarContent
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.event.room_message.state.RoomNameContent
-import koma.matrix.json.Preserved
-import koma.matrix.json.RawSerializer
 import koma.matrix.pagination.FetchDirection
+import koma.matrix.publicapi.rooms.RoomDirectoryFilter
 import koma.matrix.publicapi.rooms.RoomDirectoryQuery
 import koma.matrix.room.admin.BanRoomResult
 import koma.matrix.room.admin.CreateRoomResult
@@ -49,6 +46,8 @@ import kotlin.time.seconds
 import koma.util.KResult
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.updateAndGet
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
@@ -331,7 +330,65 @@ class MatrixApi internal constructor(
             jsonBody(query)
         }
     }
+    suspend fun findPublicRooms(
+            keyword: String?= null,
+            limit: Int = 20,
+            since: String? = null,
+            server: String?= null
+    ):  KResult<RoomListing, KomaFailure>{
+        logger.trace { "findPublicRooms since=$since" }
+        val query = RoomDirectoryQuery(
+                filter = keyword ?.let { RoomDirectoryFilter(it) },
+                since = since,
+                limit = limit
+        )
+        return request(method = HttpMethod.Post) {
+            buildUrl("publicRooms")
+            parameter("server", server)
+            jsonBody(query)
+        }
+    }
+    fun publicRoomFlow(term: String?= null,
+                       limit: Int = 20,
+                       since: String? = null,
+                       server: String? = null
+    ) = flow {
+        var from: String? = since
+        while (true) {
+            val (roomBatch, error, result) = findPublicRooms(keyword = term,
+                    limit = limit,
+                    since = from,
+                    server = server)
+            emit(result)
+            if (roomBatch != null) {
+                val next = roomBatch.next_batch
+                if (next == null || next == from) {
+                    logger.info { "Finished fetching public rooms matching $term" }
+                    return@flow
+                }
+                from = next
+            } else {
+                check(error != null)
+                if (error is HttpFailure) {
+                    logger.error { "Http Error $error finding public rooms with $term" }
 
+                    return@flow
+                }
+                logger.warn { "Error finding public rooms with $term: $error" }
+                delay(1000)
+            }
+        }
+    }
+    suspend fun listPublicRooms(since: String?=null, limit: Int = 20
+    ): KResultF<RoomListing> {
+        return request(HttpMethod.Get) {
+            url {
+                buildUrl("publicRooms")
+                parameter("since", since)
+                parameter("limit", limit)
+            }
+        }
+    }
     internal val longTimeoutClient
         get() = server.longTimeoutClient
     suspend fun sync(since: String?

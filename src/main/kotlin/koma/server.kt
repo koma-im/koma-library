@@ -113,6 +113,7 @@ class Server(
         }
     }
 
+    @Deprecated("may fail without authentication")
     suspend fun listPublicRooms(since: String?=null, limit: Int = 20
     ): KResultF<RoomListing> {
         return request(HttpMethod.Get) {

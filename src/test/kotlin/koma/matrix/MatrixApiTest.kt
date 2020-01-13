@@ -5,6 +5,7 @@ import io.ktor.client.engine.okhttp.OkHttpEngine
 import io.ktor.content.ByteArrayContent
 import io.ktor.http.ContentType
 import io.ktor.util.InternalAPI
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import io.ktor.util.KtorExperimentalAPI
 import koma.*
 import koma.matrix.event.room_message.chat.TextMessage
@@ -20,22 +21,32 @@ import koma.network.client.okhttp.KHttpClient
 import koma.util.KResult
 import koma.util.failureOrThrow
 import koma.util.getOrThrow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.json.JsonDecodingException
+import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.junit.Ignore
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.io.EOFException
+import java.net.InetSocketAddress
+import java.net.Proxy
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+
+private val logger = KotlinLogging.logger {}
 
 @KtorExperimentalAPI
 @ExperimentalContracts
@@ -216,7 +227,7 @@ internal class MatrixApiTest {
         server.enqueue(MockResponse())
         val api = s.account(UserId("u"), "token")
         val term = "kotl"
-        val query = RoomDirectoryQuery(RoomDirectoryFilter(term))
+        val query = RoomDirectoryQuery(RoomDirectoryFilter(term), limit = 20)
         val n= runBlocking {
             api.findPublicRooms(query)
         }
@@ -230,7 +241,54 @@ internal class MatrixApiTest {
         val body = req.body.readUtf8()
         val q1 = jsonDefault.parse(RoomDirectoryQuery.serializer(), body)
         assertEquals(20, q1.limit)
-        assertEquals(term, q1.filter.generic_search_term)
+        assertEquals(term, q1.filter!!.generic_search_term)
+    }
+
+    @Ignore("need local server")
+    @Test
+    fun testGetPublicRoomsLocal() {
+        val base = "http://localhost:8008".toHttpUrlOrNull()!!
+        val client = KHttpClient.client
+        val s = Server(base, client)
+        val userId = System.getenv("MATRIX_USERID")
+        val token = System.getenv("MATRIX_TOKEN")
+        val api = s.account(UserId(userId), token)
+        val n1 = runBlocking {
+            api.listPublicRooms(limit=22)
+        }
+        assert(n1.isSuccess) { "Expected $n1"}
+    }
+    @Ignore("need local server")
+    @Test
+    fun postPublicRoomsLocal() = runBlocking {
+        val base = "http://localhost:8008".toHttpUrlOrNull()!!
+        val client = KHttpClient.client
+        val s = Server(base, client)
+        val userId = System.getenv("MATRIX_USERID")
+        val token = System.getenv("MATRIX_TOKEN")
+        val api = s.account(UserId(userId), token)
+        val n1 = api.findPublicRooms(limit=1)
+        assert(n1.isSuccess) { "Expected $n1"}
+    }
+    @Ignore("need local server")
+    @Test
+    fun testPublicRoomFlowLocal() = runBlocking {
+        val base = "http://localhost:8008".toHttpUrlOrNull()!!
+        val client = KHttpClient.client
+        val s = Server(base, client)
+        val userId = System.getenv("MATRIX_USERID")
+        val token = System.getenv("MATRIX_TOKEN")
+        val api = s.account(UserId(userId), token)
+        var total = 0
+        var accum = 0
+        api.publicRoomFlow(limit=1).collect {
+            val l = it.getOrThrow()
+            if (total != l.total_room_count_estimate) {
+                total = l.total_room_count_estimate
+                logger.info { "update total_room_count_estimate to $total" }
+            }
+            accum += l.chunk.size
+        }
     }
 
     @Test
