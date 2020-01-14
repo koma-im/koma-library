@@ -14,9 +14,6 @@ internal val jsonDefaultConf = JsonConfiguration.Stable.copy(
 )
 
 internal val jsonDefault = Json(jsonDefaultConf)
-// relevant when encoding json bodies when sending requests
-// sending null is different
-internal val jsonOmit = Json(jsonDefaultConf.copy(encodeDefaults = false))
 internal val jsonPretty = Json(jsonDefaultConf.copy(prettyPrint = true, indent = "  "))
 
 
