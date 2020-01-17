@@ -5,9 +5,9 @@ version = "0.9.21"
 plugins {
     id("java")
     id("maven")
-    id("org.jetbrains.kotlin.jvm") version "1.3.60"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.60"
-    id("org.jetbrains.kotlin.kapt") version "1.3.60"
+    id("org.jetbrains.kotlin.jvm") version "1.3.61"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.61"
+    id("org.jetbrains.kotlin.kapt") version "1.3.61"
 }
 
 repositories {
@@ -31,9 +31,9 @@ tasks {
 }
 
 dependencies {
-    val ktorVersion = "1.2.6"
+    val ktorVersion = "1.3.0"
     implementation(kotlin("stdlib-jdk8"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3")
     implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.14.0")
     implementation("org.jetbrains.kotlinx", "atomicfu", "0.14.1")
     implementation("io.ktor", "ktor-client-okhttp", ktorVersion)

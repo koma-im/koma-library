@@ -6,8 +6,8 @@ import io.ktor.client.request.put
 import io.ktor.content.ByteArrayContent
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
-import io.ktor.http.content.LocalFileContent
 import io.ktor.http.content.OutgoingContent
+import io.ktor.http.content.URIFileContent
 import io.ktor.http.contentType
 import io.ktor.http.takeFrom
 import koma.*
@@ -161,9 +161,10 @@ class MatrixApi internal constructor(
         }
     }
     suspend fun uploadFile(file: File, contentType: ContentType?=null): KResultF<UploadResponse> {
+        val uri = file.toURI()
         val content = if (contentType != null) {
-            LocalFileContent(file, contentType)
-        } else LocalFileContent(file)
+            URIFileContent(uri, contentType)
+        } else URIFileContent(uri)
         return uploadMedia(content)
     }
     suspend fun uploadByteArray(contentType: ContentType?=null, byteArray: ByteArray): KResultF<UploadResponse> {

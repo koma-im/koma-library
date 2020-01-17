@@ -5,16 +5,15 @@ import io.ktor.client.call.receive
 import io.ktor.client.features.ClientRequestException
 import io.ktor.client.features.ResponseException
 import io.ktor.client.request.HttpResponseData
-import io.ktor.client.response.HttpResponse
 import io.ktor.client.response.readText
 import io.ktor.http.HttpStatusCode
+import io.ktor.utils.io.core.Input
+import io.ktor.utils.io.core.readText
 import koma.matrix.json.jsonDefault
 import koma.matrix.user.auth.Unauthorized
 import koma.util.KResult
 import koma.util.coroutine.adapter.retrofit.toMatrixFailure
 import koma.util.given
-import kotlinx.io.core.Input
-import kotlinx.io.core.readText
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.json.*
 import java.io.IOException
@@ -129,10 +128,8 @@ suspend fun Throwable.toFailure(): KomaFailure {
 private suspend fun parseResponseFailure(responseException: ResponseException): HttpFailure {
     val response = responseException.response
     val body = runCatching {
-        response.use {
-        val packet = it.receive<Input>()
+        val packet = response.receive<Input>()
         packet.readText(charset = Charsets.UTF_8, max=65536)
-        }
     }.getOrNull()
     if (body != null) {
         val mf = runCatching {
