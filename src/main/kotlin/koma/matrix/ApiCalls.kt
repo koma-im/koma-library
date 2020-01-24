@@ -48,6 +48,7 @@ import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.updateAndGet
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import kotlin.time.MonoClock
 import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
@@ -413,6 +414,29 @@ class MatrixApi internal constructor(
             return KResult.failure(failure)
         }
         return success
+    }
+    suspend fun syncFlow(since: String? = null) = flow {
+        var from = since
+        var timeout = 10.seconds
+        while (true) {
+            val startTime = MonoClock.markNow()
+            val (syncRes, error, result) =  sync(from, timeout = timeout)
+            emit(result)
+            if (syncRes!=null) {
+                from = syncRes.next_batch
+                timeout = 50.seconds
+            } else {
+                check(error != null)
+                timeout = 1.seconds
+                logger.warn { "Sync failure: $error" }
+                val minInterval = 1.seconds // limit rate of retries
+                val dur = startTime.elapsedNow()
+                if (dur < minInterval) {
+                    val remaining = minInterval - dur
+                    delay(remaining.toLongMilliseconds())
+                }
+            }
+        }
     }
 }
 
