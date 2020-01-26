@@ -48,7 +48,7 @@ class RoomJoinRulesContent(
 
 @Serializable
 class RoomRedactContent(
-        val reason: String
+        val reason: String?= null
 )
 
 @Serializable
