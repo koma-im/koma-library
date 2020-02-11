@@ -31,7 +31,7 @@ tasks {
 }
 
 dependencies {
-    val ktorVersion = "1.3.0"
+    val ktorVersion = "1.3.1"
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3")
     implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.14.0")
