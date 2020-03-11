@@ -10,7 +10,7 @@ import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.stringify
 
 internal val jsonDefaultConf = JsonConfiguration.Stable.copy(
-        strictMode = false // allow unknown keys
+        ignoreUnknownKeys = true
 )
 
 internal val jsonDefault = Json(jsonDefaultConf)

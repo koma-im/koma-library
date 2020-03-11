@@ -48,7 +48,7 @@ import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.updateAndGet
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
-import kotlin.time.MonoClock
+import kotlin.time.TimeSource.Monotonic
 import koma.util.KResult as Result
 
 private val logger = KotlinLogging.logger {}
@@ -418,7 +418,7 @@ class MatrixApi internal constructor(
         var from = since
         var timeout = 10.seconds
         while (true) {
-            val startTime = MonoClock.markNow()
+            val startTime = Monotonic.markNow()
             val (syncRes, error, result) =  sync(from, timeout = timeout)
             emit(result)
             if (syncRes!=null) {

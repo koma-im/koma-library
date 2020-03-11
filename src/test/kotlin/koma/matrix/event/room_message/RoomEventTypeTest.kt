@@ -1,7 +1,6 @@
 package koma.matrix.event.room_message
 
 import koma.matrix.json.jsonDefault
-import kotlinx.serialization.internal.nullable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import org.junit.jupiter.api.Test

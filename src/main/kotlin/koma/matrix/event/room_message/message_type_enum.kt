@@ -50,7 +50,7 @@ enum class RoomEventType{
         private val enumStringMap = stringEnumMap.entries.associate { it.value to it.key }
         
         override val descriptor: SerialDescriptor =
-                StringDescriptor.withName("RoomEventType")
+                PrimitiveDescriptor("RoomEventType", PrimitiveKind.STRING)
         override fun serialize(encoder: Encoder, obj: RoomEventType) {
             val s = enumStringMap[obj]
             encoder.encodeString(s ?: obj.name)

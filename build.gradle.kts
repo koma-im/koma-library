@@ -1,13 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-version = "0.9.22"
+version = "0.9.23"
 
 plugins {
     id("java")
     id("maven")
-    id("org.jetbrains.kotlin.jvm") version "1.3.61"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.61"
-    id("org.jetbrains.kotlin.kapt") version "1.3.61"
+    id("org.jetbrains.kotlin.jvm") version "1.3.70"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.70"
+    id("org.jetbrains.kotlin.kapt") version "1.3.70"
 }
 
 repositories {
@@ -34,12 +34,11 @@ dependencies {
     val ktorVersion = "1.3.1"
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3")
-    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.14.0")
-    implementation("org.jetbrains.kotlinx", "atomicfu", "0.14.1")
+    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.20.0")
     implementation("io.ktor", "ktor-client-okhttp", ktorVersion)
     implementation("io.ktor", "ktor-client-core", ktorVersion)
     implementation("io.ktor", "ktor-client-serialization-jvm", ktorVersion)
-    implementation("io.github.microutils:kotlin-logging:1.6.22")
+    implementation("io.github.microutils", "kotlin-logging", "1.7.8")
     implementation("org.slf4j", "slf4j-api", "1.8.0-beta2")
 
     testImplementation(kotlin("test"))
@@ -47,6 +46,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.3.2")
     testImplementation("com.squareup.okhttp3", "mockwebserver", "4.2.0")
     testImplementation("org.jetbrains.kotlinx", "kotlinx-coroutines-test", "1.3.3")
+    testImplementation("org.jetbrains.kotlinx", "kotlinx-serialization-properties", "0.20.0")
     testRuntime("org.slf4j:slf4j-simple:1.8.0-beta2")
 }
 

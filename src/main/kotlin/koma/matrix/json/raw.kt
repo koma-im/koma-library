@@ -1,14 +1,11 @@
 package koma.matrix.json
 
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.StringDescriptor
 import kotlinx.serialization.json.JsonInput
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectSerializer
 import kotlinx.serialization.json.JsonOutput
 import mu.KotlinLogging
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,11 +26,11 @@ class Preserved<T>(
 @Serializer(forClass = Preserved::class)
 internal class RawSerializer<T>(private val dataSerializer: KSerializer<T>): KSerializer<Preserved<T>> {
     override val descriptor: SerialDescriptor =
-            StringDescriptor.withName("RawJsonS")
+            PrimitiveDescriptor("Preserved", PrimitiveKind.STRING)
 
-    override fun serialize(encoder: Encoder, obj: Preserved<T>) {
+    override fun serialize(encoder: Encoder, value: Preserved<T>) {
         val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
-        output.encodeJson(obj.raw)
+        output.encodeJson(value.raw)
     }
 
     override fun deserialize(decoder: Decoder): Preserved<T> {

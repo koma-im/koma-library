@@ -43,7 +43,7 @@ data class RegistrationData(
     @Serializer(forClass = RegistrationData::class)
     companion object : KSerializer<RegistrationData> {
         override val descriptor: SerialDescriptor =
-                StringDescriptor.withName("RegistrationData")
+                PrimitiveDescriptor("RegistrationData", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: RegistrationData) {
             val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json")

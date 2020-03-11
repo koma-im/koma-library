@@ -86,7 +86,7 @@ data class InviteEvent(
     @Serializer(forClass = InviteEvent::class)
     companion object : KSerializer<InviteEvent> {
         override val descriptor: SerialDescriptor =
-                StringDescriptor.withName("InviteEvent")
+                PrimitiveDescriptor("InviteEvent", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: InviteEvent) {
             val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")

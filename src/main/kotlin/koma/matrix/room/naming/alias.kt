@@ -20,7 +20,7 @@ data class RoomAlias(val full: String) {
     @Serializer(forClass = RoomAlias::class)
     companion object : KSerializer<RoomAlias> {
         override val descriptor: SerialDescriptor =
-                StringDescriptor.withName("RoomAlias")
+                PrimitiveDescriptor("RoomAlias", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: RoomAlias) {
             encoder.encodeString(obj.full)

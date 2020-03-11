@@ -16,7 +16,7 @@ sealed class M_Message (
 @Serializer(forClass = M_Message::class)
 internal object MMessageSerializer: KSerializer<M_Message> {
     override val descriptor: SerialDescriptor =
-            StringDescriptor.withName("M_Message")
+            PrimitiveDescriptor("M_Message", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, obj: M_Message) {
         val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")

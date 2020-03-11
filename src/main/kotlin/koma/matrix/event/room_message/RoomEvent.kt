@@ -282,9 +282,10 @@ class MRoomGuestAccess(
 @Serializer(forClass = RoomEvent::class)
 internal class RoomEventSerializer: KSerializer<RoomEvent> {
     override val descriptor: SerialDescriptor =
-            StringDescriptor.withName("RoomEvent")
+            PrimitiveDescriptor("RoomEvent", PrimitiveKind.STRING)
 
-    override fun serialize(encoder: Encoder, obj: RoomEvent) {
+    override fun serialize(encoder: Encoder, value: RoomEvent) {
+        val obj = value
         val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
         val tree = when (obj) {
             is MRoomMessage-> output.json.toJson(MRoomMessage.serializer(), obj)

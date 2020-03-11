@@ -27,7 +27,7 @@ data class RoomId(val full: String): Comparable<RoomId> {
     @Serializer(forClass = RoomId::class)
     companion object : KSerializer<RoomId> {
         override val descriptor: SerialDescriptor =
-                StringDescriptor.withName("RoomId")
+                PrimitiveDescriptor("RoomId", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: RoomId) {
             encoder.encodeString(obj.full)

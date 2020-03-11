@@ -42,7 +42,7 @@ data class NotificationResponse(
         @Serializer(forClass = Event::class)
         companion object : KSerializer<Event> {
             override val descriptor: SerialDescriptor =
-                    StringDescriptor.withName("Event")
+                    PrimitiveDescriptor("Event", PrimitiveKind.STRING)
 
             override fun serialize(encoder: Encoder, obj: Event) {
                 val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")

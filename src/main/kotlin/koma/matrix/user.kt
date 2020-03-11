@@ -26,7 +26,7 @@ data class UserId(private val input: String): Comparable<UserId> {
     @Serializer(forClass = UserId::class)
     companion object : KSerializer<UserId> {
         override val descriptor: SerialDescriptor =
-                StringDescriptor.withName("UserId")
+                PrimitiveDescriptor("UserId", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: UserId) {
             encoder.encodeString(obj.input)

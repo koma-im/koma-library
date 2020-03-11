@@ -3,10 +3,8 @@ package koma.matrix.event.room_message.chat
 import koma.matrix.json.jsonDefault
 import koma.matrix.json.jsonDefaultConf
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.StringDescriptor
 import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.SerializersModule
-import okhttp3.internal.http.hasBody
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
@@ -45,7 +43,7 @@ internal class TextMessageTest {
         @Serializer(forClass = SMessage::class)
         companion object : KSerializer<SMessage> {
             override val descriptor: SerialDescriptor =
-                    StringDescriptor.withName("SMessage")
+                    PrimitiveDescriptor("SMessage", PrimitiveKind.STRING)
 
             override fun serialize(encoder: Encoder, obj: SMessage) {
                 val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
@@ -107,7 +105,7 @@ internal class TextMessageTest {
         val text = TextMessage("msg1")
         val textJ = jsonDefault.stringify(TextMessage.serializer(), text)
         assertEquals("""{"body":"msg1","formatted_body":null,"msgtype":"m.text","format":null}""", textJ)
-        val tm = Mapper.mapNullable(TextMessage.serializer(), text)
+        val tm = Properties.storeNullable(TextMessage.serializer(), text)
         assertEquals("msg1", tm["body"])
         assertNull(tm["formatted_body"])
         assertEquals("m.text", tm["msgtype"])
@@ -119,7 +117,7 @@ internal class TextMessageTest {
         val Emote = EmoteMessage("msg1")
         val EmoteJ = jsonDefault.stringify(EmoteMessage.serializer(), Emote)
         assertEquals("""{"body":"msg1","msgtype":"m.emote"}""", EmoteJ)
-        val tm = Mapper.mapNullable(EmoteMessage.serializer(), Emote)
+        val tm = Properties.storeNullable(EmoteMessage.serializer(), Emote)
         assertEquals("msg1", tm["body"])
         assertNull(tm["formatted_body"])
         assertEquals("m.emote", tm["msgtype"])
@@ -138,8 +136,8 @@ internal class TextMessageTest {
         val serializer = PolymorphicSerializer(M_Message::class)
         val text1 = json.stringify(serializer, TextMessage("msg1"))
         assertEquals("""{"testingType":"m.text","body":"msg1","formatted_body":null,"msgtype":"m.text","format":null}""", text1)
-        val mapper = Mapper(messageModule)
-        val text2 = mapper.mapNullable(serializer, TextMessage("msg2"))
+        val mapper = Properties(messageModule)
+        val text2 = mapper.storeNullable(serializer, TextMessage("msg2"))
         assertEquals("m.text", text2["class"])
         assertEquals("msg2", text2["value.body"])
         assertNull(text2["value.formatted_body"])
@@ -160,16 +158,16 @@ internal class TextMessageTest {
         assertEquals("""{"body":"msg0","msgtype":"m.emote"}""",
                 e1)
 
-        val mapper = Mapper()
+        val mapper = Properties()
         assertThrows<SerializationException> {
-           mapper.map(M_Message.serializer(), EmoteMessage("emote2"))
+           mapper.store(M_Message.serializer(), EmoteMessage("emote2"))
         }
 
         assertThrows<SerializationException> {
-            mapper.mapNullable(M_Message.serializer(), TextMessage("msg2"))
+            mapper.storeNullable(M_Message.serializer(), TextMessage("msg2"))
         }
 
-        val emoteMessageMap = Mapper.map(EmoteMessage.serializer(), EmoteMessage("emotemsg"))
+        val emoteMessageMap = Properties.store(EmoteMessage.serializer(), EmoteMessage("emotemsg"))
         assertEquals("emotemsg", emoteMessageMap["body"])
         assertEquals("m.emote", emoteMessageMap["msgtype"])
         assertEquals(2, emoteMessageMap.size)

@@ -1,5 +1,6 @@
 package koma.matrix.user
 
+import kotlinx.serialization.builtins.list
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.json.JsonDecodingException
