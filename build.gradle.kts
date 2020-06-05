@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-version = "0.9.23"
+version = "0.9.25"
 
 plugins {
     id("java")
@@ -35,8 +35,9 @@ tasks {
 dependencies {
     val ktorVersion = "1.3.2"
     val serialVer = "0.20.0-1.4-M2"
+    val coroutineVer = "1.3.7"
     implementation(kotlin("stdlib-jdk8"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3")
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", coroutineVer)
     implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", serialVer)
     implementation("io.ktor", "ktor-client-okhttp", ktorVersion)
     implementation("io.ktor", "ktor-client-core", ktorVersion)
@@ -48,7 +49,7 @@ dependencies {
     testImplementation(kotlin("test-junit"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.3.2")
     testImplementation("com.squareup.okhttp3", "mockwebserver", "4.2.0")
-    testImplementation("org.jetbrains.kotlinx", "kotlinx-coroutines-test", "1.3.3")
+    testImplementation("org.jetbrains.kotlinx", "kotlinx-coroutines-test", coroutineVer)
     testImplementation("org.jetbrains.kotlinx", "kotlinx-serialization-properties", serialVer)
     testRuntimeOnly("org.slf4j:slf4j-simple:1.8.0-beta2")
 }
