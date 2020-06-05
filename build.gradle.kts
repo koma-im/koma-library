@@ -5,9 +5,9 @@ version = "0.9.23"
 plugins {
     id("java")
     id("maven")
-    id("org.jetbrains.kotlin.jvm") version "1.3.70"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.70"
-    id("org.jetbrains.kotlin.kapt") version "1.3.70"
+    id("org.jetbrains.kotlin.jvm") version "1.4-M2"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.4-M2"
+    id("org.jetbrains.kotlin.kapt") version "1.4-M2"
 }
 
 repositories {
@@ -17,6 +17,8 @@ repositories {
     maven("https://dl.bintray.com/kittinunf/maven")
     maven("https://jitpack.io")
     maven("https://repo.maven.apache.org/maven2")
+    maven ("https://dl.bintray.com/kotlin/kotlin-eap")
+    maven ("https://kotlin.bintray.com/kotlinx")
 }
 
 tasks {
@@ -31,10 +33,11 @@ tasks {
 }
 
 dependencies {
-    val ktorVersion = "1.3.1"
+    val ktorVersion = "1.3.2"
+    val serialVer = "0.20.0-1.4-M2"
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3")
-    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.20.0")
+    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", serialVer)
     implementation("io.ktor", "ktor-client-okhttp", ktorVersion)
     implementation("io.ktor", "ktor-client-core", ktorVersion)
     implementation("io.ktor", "ktor-client-serialization-jvm", ktorVersion)
@@ -46,8 +49,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.3.2")
     testImplementation("com.squareup.okhttp3", "mockwebserver", "4.2.0")
     testImplementation("org.jetbrains.kotlinx", "kotlinx-coroutines-test", "1.3.3")
-    testImplementation("org.jetbrains.kotlinx", "kotlinx-serialization-properties", "0.20.0")
-    testRuntime("org.slf4j:slf4j-simple:1.8.0-beta2")
+    testImplementation("org.jetbrains.kotlinx", "kotlinx-serialization-properties", serialVer)
+    testRuntimeOnly("org.slf4j:slf4j-simple:1.8.0-beta2")
 }
 
 group = "io.github.koma-im"
