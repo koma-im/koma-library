@@ -337,11 +337,11 @@ internal class MatrixApiTest {
                 returnNonLocal()
             }
         }
-        assertThrows<ClassCastException> {
-            val result = runBlocking {
-                returnNonLocal()
-            }
+        val result = runBlocking {
+            returnNonLocal()
         }
+        assert(result.isFailure)
+
     }
 
     @Test

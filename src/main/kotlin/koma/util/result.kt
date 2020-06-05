@@ -124,7 +124,7 @@ internal fun<E: Any> createFailure(exception: E): Any {
  * So it's currently forbidden
  */
 @Suppress("NOTHING_TO_INLINE")
-inline infix fun <R, T : R, E: Any> KResult<T, E>.getOr(crossinline onFailure: (E) -> R): R {
+inline infix fun <R, T : R, E: Any> KResult<T, E>.getOr(onFailure: (E) -> R): R {
     contract {
         callsInPlace(onFailure, InvocationKind.AT_MOST_ONCE)
     }
@@ -136,7 +136,7 @@ inline infix fun <R, T : R, E: Any> KResult<T, E>.getOr(crossinline onFailure: (
 }
 
 @Suppress("NOTHING_TO_INLINE")
-inline infix fun <R: Any, T, E: R> KResult<T, E>.getFailureOr(crossinline onSuccess: (T) -> R): R {
+inline infix fun <R: Any, T, E: R> KResult<T, E>.getFailureOr(onSuccess: (T) -> R): R {
     return if (isSuccess) {
         onSuccess(getOrThrow())
     } else {
@@ -185,8 +185,8 @@ inline fun <T, E: Any> KResult<T, E>.failureOrThrow(): E {
  */
 @Suppress("NOTHING_TO_INLINE")
 inline fun <R, T, E: Any> KResult<T, E>.fold(
-        crossinline onSuccess: (T) -> R,
-        crossinline onFailure: (E) -> R
+        onSuccess: (T) -> R,
+        onFailure: (E) -> R
 ): R {
     return when (val exception = failureOrNull()) {
         null -> {
@@ -207,7 +207,7 @@ inline fun <R, T, E: Any> KResult<T, E>.fold(
  * Note, that an exception thrown by [transform] function is rethrown by this function.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <R, T, E: Any> KResult<T, E>.map(crossinline transform: (T) -> R): KResult<R, E> {
+inline fun <R, T, E: Any> KResult<T, E>.map(transform: (T) -> R): KResult<R, E> {
     return when {
         isSuccess -> {
             @Suppress("UNCHECKED_CAST", "DEPRECATION")
@@ -217,7 +217,7 @@ inline fun <R, T, E: Any> KResult<T, E>.map(crossinline transform: (T) -> R): KR
     }
 }
 
-inline fun <R: Any, T, E: Any> KResult<T, E>.mapFailure(crossinline transform: (E) -> R): KResult<T, R> {
+inline fun <R: Any, T, E: Any> KResult<T, E>.mapFailure(transform: (E) -> R): KResult<T, R> {
     return when {
         isFailure -> KResult.failure(transform(failureOrThrow()))
         else -> KResult.success(getOrThrow())
@@ -225,7 +225,7 @@ inline fun <R: Any, T, E: Any> KResult<T, E>.mapFailure(crossinline transform: (
 }
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun <R, T, E: Any> KResult<T, E>.flatMap(crossinline transform: (value: T) -> KResult<R, E>): KResult<R, E> {
+inline fun <R, T, E: Any> KResult<T, E>.flatMap(transform: (value: T) -> KResult<R, E>): KResult<R, E> {
     return when {
         isSuccess -> {
             @Suppress("UNCHECKED_CAST", "DEPRECATION")
@@ -246,7 +246,7 @@ inline fun <R, T, E: Any> KResult<T, E>.flatMap(crossinline transform: (value: T
  * Note, that an exception thrown by [transform] function is rethrown by this function.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <R, T : R, E: Any> KResult<T, E>.recover(crossinline transform: (E) -> R): KResult<R, E> {
+inline fun <R, T : R, E: Any> KResult<T, E>.recover(transform: (E) -> R): KResult<R, E> {
     return when (val exception = failureOrNull()) {
         null -> this
         else -> KResult.success(transform(exception))
@@ -258,7 +258,7 @@ inline fun <R, T : R, E: Any> KResult<T, E>.recover(crossinline transform: (E) -
  * Returns the original `KResult` unchanged.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T, E: Any> KResult<T, E>.onFailure(crossinline action: (exception: E) -> Unit): KResult<T, E> {
+inline fun <T, E: Any> KResult<T, E>.onFailure(action: (exception: E) -> Unit): KResult<T, E> {
     failureOrNull()?.let { action(it) }
     return this
 }
@@ -268,7 +268,7 @@ inline fun <T, E: Any> KResult<T, E>.onFailure(crossinline action: (exception: E
  * Returns the original `KResult` unchanged.
  */
 @Suppress("NOTHING_TO_INLINE")
-inline fun <T, E: Any> KResult<T, E>.onSuccess(crossinline action: (value: T) -> Unit): KResult<T, E> {
+inline fun <T, E: Any> KResult<T, E>.onSuccess(action: (value: T) -> Unit): KResult<T, E> {
     if (isSuccess) {
         @Suppress("UNCHECKED_CAST", "DEPRECATION")
         action(_value as T)
@@ -288,6 +288,7 @@ inline fun <R> runCatch(block: () -> R): KResult<R, Throwable> {
 /**
  * this is an extension method in order to make sure T is not nullable
  */
+@Deprecated("Returning from inline lambda works now.")
 fun<T: Any, E: Any> KResult<T, E>.testFailure(value: T?, error: E?): Boolean {
     contract {
         returns(false) implies (value != null)

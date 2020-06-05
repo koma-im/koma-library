@@ -3,11 +3,13 @@ package koma.controller.sync
 import koma.Failure
 import koma.matrix.MatrixApi
 import koma.matrix.sync.SyncResponse
+import koma.util.onFailure
+import koma.util.onSuccess
 import koma.util.testFailure
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import mu.KotlinLogging
-import kotlin.time.MonoClock
+import kotlin.time.TimeSource.Monotonic
 import kotlin.time.seconds
 import koma.util.KResult as Result
 
@@ -30,13 +32,13 @@ class MatrixSyncReceiver(private val client: MatrixApi, var since: String?
         var timeout = 50.seconds
         launch {
             while (true) {
-                val startTime = MonoClock.markNow()
-                val (it, e, res) = client.sync(since, timeout = timeout)
+                val startTime = Monotonic.markNow()
+                val res = client.sync(since, timeout = timeout)
                 events.send(res)
-                if (!res.testFailure(it, e)) {
+                res.onSuccess {
                     timeout = 50.seconds
                     since = it.next_batch
-                }else {
+                }.onFailure { e ->
                     timeout = 1.seconds
                     logger.warn { "Sync failure: $e" }
                     val minInterval = 1.seconds // limit rate of retries
