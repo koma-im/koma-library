@@ -55,7 +55,7 @@ internal class InvitationDeserialization {
                 "alias": "#welc2:club"
               }
         """.trimIndent()
-        val data1 = jsonDefault.parse(RoomCanonAliasContent.serializer(), aliasJson)
+        val data1 = jsonDefault.decodeFromString(RoomCanonAliasContent.serializer(), aliasJson)
         assert(data1 is RoomCanonAliasContent)
 
         val state = """
@@ -68,7 +68,7 @@ internal class InvitationDeserialization {
               "state_key": ""
             }
         """.trimIndent()
-        val data2 =jsonDefault.parse(InviteEvent.serializer(), state)
+        val data2 =jsonDefault.decodeFromString(InviteEvent.serializer(), state)
 
         val events = """
           {
@@ -84,8 +84,8 @@ internal class InvitationDeserialization {
             ]
           }
         """.trimIndent()
-        val data3 =jsonDefault.parse(Events.serializer(InviteEvent.serializer()), events)
+        val data3 =jsonDefault.decodeFromString(Events.serializer(InviteEvent.serializer()), events)
 
-        jsonDefault.parse(InvitedRoom.serializer(), invitedRoom)
+        jsonDefault.decodeFromString(InvitedRoom.serializer(), invitedRoom)
     }
 }

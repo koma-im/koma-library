@@ -1,6 +1,7 @@
 package koma.matrix.sync
 
 import koma.matrix.json.jsonDefault
+import kotlinx.serialization.stringify
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
@@ -14,9 +15,9 @@ internal class SyncResponseTest {
                 Events(listOf()), Events(listOf()),
                 RoomsResponse(mapOf(), mapOf(), mapOf())
                 )
-        val srText = jsonDefault.stringify(SyncResponse.serializer(), syncResponse)
-        val deserilizedSync = jsonDefault.parse(SyncResponse.serializer(), srText)
-        val s = jsonDefault.parse(SyncResponse.serializer(), syncResponseText)
+        val srText = jsonDefault.encodeToString(SyncResponse.serializer(), syncResponse)
+        val deserilizedSync = jsonDefault.decodeFromString(SyncResponse.serializer(), srText)
+        val s = jsonDefault.decodeFromString(SyncResponse.serializer(), syncResponseText)
     }
 
     val syncResponseText: String = """

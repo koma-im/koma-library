@@ -30,7 +30,7 @@ internal class RoomBatchTest {
 }"""
     @Test
     fun getChunk() {
-        val discovery = jsonDefault.parse(RoomListing.serializer(), listing)
+        val discovery = jsonDefault.decodeFromString(RoomListing.serializer(), listing)
         assertEquals(115, discovery.total_room_count_estimate)
     }
 }

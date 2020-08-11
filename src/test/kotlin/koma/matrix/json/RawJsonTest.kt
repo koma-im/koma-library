@@ -2,9 +2,9 @@ package koma.matrix.json
 
 import koma.matrix.event.room_message.state.RoomCanonAliasContent
 import koma.matrix.room.naming.RoomAlias
-import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.content
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.parse
 import org.junit.Test
 import org.junit.jupiter.api.Assertions.*
@@ -17,9 +17,9 @@ internal class RawJsonTest {
                 "alias": "#welc2:club",
                 "k": "v"              }
         """.trimIndent()
-        val data3 = jsonDefault.parse(RawSerializer(RoomCanonAliasContent.serializer()), aliasJson)
+        val data3 = jsonDefault.decodeFromString(RawSerializer(RoomCanonAliasContent.serializer()), aliasJson)
         assertNotNull(data3)
-        assertEquals("v", data3!!.raw["k"]?.content)
+        assertEquals("v", data3!!.raw["k"]?.let { it.jsonPrimitive.content })
         val alias = data3.value
         assertEquals("#welc2:club", alias.alias?.full)
 
@@ -30,7 +30,7 @@ internal class RawJsonTest {
                 }
             }
         """.trimMargin()
-        val data = jsonDefault.parse(AliasContentWrapper.serializer(), string2)
+        val data = jsonDefault.decodeFromString(AliasContentWrapper.serializer(), string2)
         assertEquals("#alias2:example", data.content.value.alias?.full)
     }
 

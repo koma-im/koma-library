@@ -1,6 +1,11 @@
 package koma.matrix.event.room_message.chat
 
 import kotlinx.serialization.*
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.internal.StringDescriptor
 import kotlinx.serialization.json.*
 
@@ -16,38 +21,39 @@ sealed class M_Message (
 @Serializer(forClass = M_Message::class)
 internal object MMessageSerializer: KSerializer<M_Message> {
     override val descriptor: SerialDescriptor =
-            PrimitiveDescriptor("M_Message", PrimitiveKind.STRING)
+            PrimitiveSerialDescriptor("M_Message", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, obj: M_Message) {
-        val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
+        val output = encoder as? JsonEncoder ?: throw SerializationException("This class can be saved only by Json, not $encoder")
         val tree = when (obj) {
-            is TextMessage-> output.json.toJson(TextMessage.serializer(), obj)
-            is EmoteMessage-> output.json.toJson(EmoteMessage.serializer(), obj)
-            is NoticeMessage-> output.json.toJson(NoticeMessage.serializer(), obj)
-            is ImageMessage-> output.json.toJson(ImageMessage.serializer(), obj)
-            is FileMessage-> output.json.toJson(FileMessage.serializer(), obj)
-            is LocationMessage-> output.json.toJson(LocationMessage.serializer(), obj)
-            is VideoMessage-> output.json.toJson(VideoMessage.serializer(), obj)
-            is AudioMessage-> output.json.toJson(AudioMessage.serializer(), obj)
+            is TextMessage-> output.json.encodeToJsonElement(TextMessage.serializer(), obj)
+            is EmoteMessage-> output.json.encodeToJsonElement(EmoteMessage.serializer(), obj)
+            is NoticeMessage-> output.json.encodeToJsonElement(NoticeMessage.serializer(), obj)
+            is ImageMessage-> output.json.encodeToJsonElement(ImageMessage.serializer(), obj)
+            is FileMessage-> output.json.encodeToJsonElement(FileMessage.serializer(), obj)
+            is LocationMessage-> output.json.encodeToJsonElement(LocationMessage.serializer(), obj)
+            is VideoMessage-> output.json.encodeToJsonElement(VideoMessage.serializer(), obj)
+            is AudioMessage-> output.json.encodeToJsonElement(AudioMessage.serializer(), obj)
             is UnrecognizedMessage -> obj.raw as JsonElement
         }
-        output.encodeJson(tree)
+        output.encodeJsonElement(tree)
     }
 
     override fun deserialize(decoder: Decoder): M_Message {
-        val input = decoder as? JsonInput ?: throw SerializationException("This class can be loaded only by Json")
-        val tree = input.decodeJson() as? JsonObject ?: throw SerializationException("Expected JsonObject")
-        val msgtype = tree.getPrimitiveOrNull("msgtype")?.content
+        val input = decoder as? JsonDecoder ?: throw SerializationException("This class can be loaded only by Json")
+        val tree = input.decodeJsonElement() as? JsonObject ?: throw SerializationException("Expected JsonObject")
+        val msgtype = tree["msgtype"]?.jsonPrimitive?.content
+        val value = tree
         return when(msgtype) {
-            "m.text" -> input.json.fromJson(TextMessage.serializer(), tree)
-            "m.emote" -> input.json.fromJson(EmoteMessage.serializer(), tree)
-            "m.notice" -> input.json.fromJson(NoticeMessage.serializer(), tree)
-            "m.image" -> input.json.fromJson(ImageMessage.serializer(), tree)
-            "m.file" -> input.json.fromJson(FileMessage.serializer(), tree)
-            "m.location" -> input.json.fromJson(LocationMessage.serializer(), tree)
-            "m.video" -> input.json.fromJson(VideoMessage.serializer(), tree)
-            "m.audio" -> input.json.fromJson(AudioMessage.serializer(), tree)
-            else -> UnrecognizedMessage(raw = tree, body = tree.getPrimitiveOrNull("body")?.content.toString())
+            "m.text" -> input.json.decodeFromJsonElement(TextMessage.serializer(), value)
+            "m.emote" -> input.json.decodeFromJsonElement(EmoteMessage.serializer(), value)
+            "m.notice" -> input.json.decodeFromJsonElement(NoticeMessage.serializer(), value)
+            "m.image" -> input.json.decodeFromJsonElement(ImageMessage.serializer(), value)
+            "m.file" -> input.json.decodeFromJsonElement(FileMessage.serializer(), value)
+            "m.location" -> input.json.decodeFromJsonElement(LocationMessage.serializer(), value)
+            "m.video" -> input.json.decodeFromJsonElement(VideoMessage.serializer(), value)
+            "m.audio" -> input.json.decodeFromJsonElement(AudioMessage.serializer(), value)
+            else -> UnrecognizedMessage(raw = tree, body = tree["body"]?.jsonPrimitive?.content.toString())
         }
     }
 }

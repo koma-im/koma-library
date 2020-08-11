@@ -6,11 +6,12 @@ import koma.matrix.json.RawSerializer
 import koma.matrix.room.naming.RoomAlias
 import koma.matrix.room.naming.RoomId
 import kotlinx.serialization.*
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.internal.StringDescriptor
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonLiteral
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonOutput
+import kotlinx.serialization.json.*
 
 /**
  * Created by developer on 2017/7/8.
@@ -43,21 +44,21 @@ data class RegistrationData(
     @Serializer(forClass = RegistrationData::class)
     companion object : KSerializer<RegistrationData> {
         override val descriptor: SerialDescriptor =
-                PrimitiveDescriptor("RegistrationData", PrimitiveKind.STRING)
+                PrimitiveSerialDescriptor("RegistrationData", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: RegistrationData) {
-            val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json")
+            val output = encoder as? JsonEncoder ?: throw SerializationException("This class can be saved only by Json")
             val m = mutableMapOf<String, JsonElement>(
-                    "password" to JsonLiteral(obj.password)
+                    "password" to JsonPrimitive(obj.password)
             )
-            obj.username?.let { m["username"] = JsonLiteral(it)}
-            obj.device_id?.let { m["device_id"] = JsonLiteral(it)}
-            obj.initial_device_display_name?.let { m["initial_device_display_name"] = JsonLiteral(it)}
+            obj.username?.let { m["username"] = JsonPrimitive(it) }
+            obj.device_id?.let { m["device_id"] = JsonPrimitive(it) }
+            obj.initial_device_display_name?.let { m["initial_device_display_name"] = JsonPrimitive(it) }
             if (obj.auth != null) {
-                val j = output.json.toJson(AuthenticationData.serializer(), obj.auth)
+                val j = output.json.encodeToJsonElement(AuthenticationData.serializer(), obj.auth)
                 m["auth"] = j
             }
-            output.encodeJson(JsonObject(m))
+            output.encodeJsonElement(JsonObject(m))
         }
     }
 }

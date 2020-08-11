@@ -6,8 +6,7 @@ import koma.network.client.okhttp.KHttpClient
 import koma.util.failureOrThrow
 import koma.util.getOrThrow
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.JsonDecodingException
-import okhttp3.HttpUrl
+import kotlinx.serialization.SerializationException as JsonDecodingException
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer

@@ -14,7 +14,8 @@ import koma.util.getOrThrow
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.JsonDecodingException
+import kotlinx.serialization.stringify
+import kotlinx.serialization.SerializationException as JsonDecodingException
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.Test
@@ -30,7 +31,7 @@ internal class MatrixSyncReceiverTest {
         val server = MockWebServer()
         val sync = SyncResponse("next_bat", Events(listOf()), Events(listOf()),
                 RoomsResponse(mapOf(), mapOf(), mapOf()))
-        val b = jsonDefault.stringify(SyncResponse.serializer(), sync)
+        val b = jsonDefault.encodeToString(SyncResponse.serializer(), sync)
         val res= MockResponse()
                 .setHeader("Content-Type", "application/json")
                 .setBody(b)
@@ -72,7 +73,7 @@ internal class MatrixSyncReceiverTest {
         
         server.enqueue(MockResponse()
                 .setHeader("Content-Type", "application/json")
-                .setBody(jsonDefault.stringify(SyncResponse.serializer(), sync.copy(next_batch = "nb3"))))
+                .setBody(jsonDefault.encodeToString(SyncResponse.serializer(), sync.copy(next_batch = "nb3"))))
         val res3 = runBlocking { m.events.receive() }.getOrThrow()
         assertEquals("nb3", res3.next_batch)
 

@@ -2,7 +2,6 @@ package koma.matrix
 
 import koma.matrix.json.jsonDefault
 import koma.matrix.json.jsonPretty
-import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.stringify
 import org.junit.jupiter.api.Test
 
@@ -24,7 +23,7 @@ internal class RegistrationDataTest {
   "initial_device_display_name": "Jungle Phone",
   "inhibit_login": false
 }"""
-        val r1 = jsonDefault.parse(RegistrationData.serializer(), s1)
+        val r1 = jsonDefault.decodeFromString(RegistrationData.serializer(), s1)
         assertNotNull(r1.auth)
         assertNotNull(r1.initial_device_display_name)
         assertNotNull(r1.username)
@@ -39,9 +38,9 @@ internal class RegistrationDataTest {
     "type": "example.type.foo",
     "session": "xxxxx"
   }
-}""", jsonPretty.stringify(RegistrationData.serializer(), r1))
+}""", jsonPretty.encodeToString(RegistrationData.serializer(), r1))
         val r2 = RegistrationData(password = "password", auth = AuthenticationData(type = "dummy"))
-        val s2 = jsonDefault.stringify(RegistrationData.serializer(), r2)
+        val s2 = jsonDefault.encodeToString(RegistrationData.serializer(), r2)
         assertEquals("""{"password":"password","auth":{"type":"dummy","session":null}}""", s2)
     }
 }

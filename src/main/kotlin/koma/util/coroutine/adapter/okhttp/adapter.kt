@@ -21,7 +21,7 @@ suspend fun Call.await(): Result<Response, KomaFailure> {
             cancel()
         }
         enqueue(object : Callback {
-            override fun onResponse(call: Call?, response: Response) {
+            override fun onResponse(call: Call, response: Response) {
                 continuation.resume(Result.of (response))
             }
 
@@ -36,11 +36,11 @@ suspend fun Call.await(): Result<Response, KomaFailure> {
 
 fun Response.extract(): Result<ResponseBody, KomaFailure> {
     return if (this.isSuccessful) {
-        val body = this.body()
+        val body = this.body
         if (body == null) Result.failure(InvalidData("Response body is null"))
         else Result.of(body)
     } else {
-        body()?.close()
-        Result.failure(HttpFailure(HttpStatusCode(this.code(), this.message())))
+        body?.close()
+        Result.failure(HttpFailure(HttpStatusCode(this.code, this.message)))
     }
 }

@@ -1,15 +1,17 @@
 package koma.matrix
 
+import koma.matrix.NotificationResponse.Content.Companion.fromJson
 import koma.matrix.event.EventId
 import koma.matrix.event.room_message.RoomEventType
 import koma.matrix.event.room_message.chat.M_Message
 import koma.matrix.room.naming.RoomId
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.StringDescriptor
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonInput
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonOutput
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.*
 
 @Serializable
 data class NotificationResponse(
@@ -42,18 +44,18 @@ data class NotificationResponse(
         @Serializer(forClass = Event::class)
         companion object : KSerializer<Event> {
             override val descriptor: SerialDescriptor =
-                    PrimitiveDescriptor("Event", PrimitiveKind.STRING)
+                    PrimitiveSerialDescriptor("Event", PrimitiveKind.STRING)
 
-            override fun serialize(encoder: Encoder, obj: Event) {
-                val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
-                val contentObject = obj.content.toJson(output)
-                val pri = PrimevalEvent.copyFrom(obj, contentObject)
-                output.encode(PrimevalEvent.serializer(), pri)
+            override fun serialize(encoder: Encoder, value: Event) {
+                val output = encoder as? JsonEncoder ?: throw SerializationException("This class can be saved only by Json, not $encoder")
+                val contentObject = value.content.toJson(output)
+                val pri = PrimevalEvent.copyFrom(value, contentObject)
+                output.encodeSerializableValue(PrimevalEvent.serializer(), pri)
             }
 
             override fun deserialize(decoder: Decoder): Event {
-                val input = decoder as? JsonInput ?: throw SerializationException("This class can be loaded only by Json")
-                val pri = input.decode(PrimevalEvent.serializer())
+                val input = decoder as? JsonDecoder ?: throw SerializationException("This class can be loaded only by Json")
+                val pri = input.decodeSerializableValue(PrimevalEvent.serializer())
                 val content = Content.fromJson(input, pri.type, pri.content)
                 return copyFrom(pri, content)
             }
@@ -107,17 +109,17 @@ data class NotificationResponse(
     sealed class Content {
         data class Message(val message: M_Message): Content()
         data class Other(val map: JsonObject): Content()
-        internal fun toJson(output: JsonOutput): JsonObject {
+        internal fun toJson(output: JsonEncoder): JsonObject {
             return when (this) {
-                is Message -> output.json.toJson(M_Message.serializer(), this.message) as JsonObject
+                is Message -> output.json.encodeToJsonElement(M_Message.serializer(), this.message) as JsonObject
                 is Other -> this.map
             }
         }
         companion object {
-            internal fun fromJson(input: JsonInput, type: RoomEventType?, map: JsonObject): Content {
+            internal fun fromJson(input: JsonDecoder, type: RoomEventType?, map: JsonObject): Content {
                 return when (type) {
                     RoomEventType.Message -> {
-                        val m = input.json.fromJson(M_Message.serializer(), map)
+                        val m = input.json.decodeFromJsonElement(M_Message.serializer(), map)
                         Message(m)
                     }
                     else -> Other(map)

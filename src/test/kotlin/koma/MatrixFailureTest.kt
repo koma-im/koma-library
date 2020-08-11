@@ -18,7 +18,7 @@ internal class MatrixFailureTest {
   "error": "Too many requests",
   "retry_after_ms": 2000
 }"""
-        val o1 = jsonDefault.parse(JsonObjectSerializer, s1)
+        val o1 = jsonDefault.decodeFromString(JsonObjectSerializer, s1)
         val m = o1.toMatrixFailure(httpStatusCode, s1)
         assertEquals("MatrixFailure(M_LIMIT_EXCEEDED: Too many requests, retry_after_ms: 2000)", m.toString())
         val s2 = """
@@ -41,7 +41,7 @@ internal class MatrixFailureTest {
   },
   "session": "xxxxxx"
 }"""
-        val o2 = jsonDefault.parse(JsonObjectSerializer, s2)
+        val o2 = jsonDefault .decodeFromString(JsonObjectSerializer, s2)
         val m2 = o2.toMatrixFailure(httpStatusCode, s2)
         assertEquals("MatrixFailure(M_FORBIDDEN: Invalid password, session: xxxxxx)", m2.toString())
     }

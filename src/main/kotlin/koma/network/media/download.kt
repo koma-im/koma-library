@@ -7,6 +7,7 @@ import koma.util.failureOrThrow
 import koma.util.getOr
 import mu.KotlinLogging
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
@@ -47,7 +48,7 @@ fun String.parseMxc(): MHUrl? {
         val  m = substring(sep0+1, end)
         return MHUrl.Mxc(server,m)
     } else {
-        val h =HttpUrl.parse(this)?:return null
+        val h = this.toHttpUrlOrNull() ?:return null
         return MHUrl.Http(h)
     }
 }

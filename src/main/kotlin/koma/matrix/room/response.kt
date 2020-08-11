@@ -13,10 +13,12 @@ import koma.matrix.json.RawSerializer
 import koma.matrix.sync.Events
 import koma.matrix.sync.RawMessage
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.StringDescriptor
-import kotlinx.serialization.json.JsonInput
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonOutput
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.*
 
 @Serializable
 data class JoinedRoom(
@@ -86,17 +88,17 @@ data class InviteEvent(
     @Serializer(forClass = InviteEvent::class)
     companion object : KSerializer<InviteEvent> {
         override val descriptor: SerialDescriptor =
-                PrimitiveDescriptor("InviteEvent", PrimitiveKind.STRING)
+                PrimitiveSerialDescriptor("InviteEvent", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: InviteEvent) {
-            val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
+            val output = encoder as? JsonEncoder ?: throw SerializationException("This class can be saved only by Json, not $encoder")
             val content = when (obj.content) {
-                is RoomMemberContent -> output.json.toJson(RoomMemberContent.serializer(), obj.content)
-                is RoomNameContent -> output.json.toJson(RoomNameContent.serializer(), obj.content)
-                is RoomCanonAliasContent -> output.json.toJson(RoomCanonAliasContent.serializer(), obj.content)
-                is RoomJoinRulesContent -> output.json.toJson(RoomJoinRulesContent.serializer(), obj.content)
-                is RoomTopicContent -> output.json.toJson(RoomTopicContent.serializer(), obj.content)
-                is RoomAvatarContent -> output.json.toJson(RoomAvatarContent.serializer(), obj.content)
+                is RoomMemberContent -> output.json.encodeToJsonElement(RoomMemberContent.serializer(), obj.content)
+                is RoomNameContent -> output.json.encodeToJsonElement(RoomNameContent.serializer(), obj.content)
+                is RoomCanonAliasContent -> output.json.encodeToJsonElement(RoomCanonAliasContent.serializer(), obj.content)
+                is RoomJoinRulesContent -> output.json.encodeToJsonElement(RoomJoinRulesContent.serializer(), obj.content)
+                is RoomTopicContent -> output.json.encodeToJsonElement(RoomTopicContent.serializer(), obj.content)
+                is RoomAvatarContent -> output.json.encodeToJsonElement(RoomAvatarContent.serializer(), obj.content)
                 is JsonObject -> obj.content
                 else -> JsonObject(mapOf())
             }
@@ -104,19 +106,21 @@ data class InviteEvent(
                     type = obj.type,
                     state_key = obj.state_key,
                     content = content as JsonObject)
-            encoder.encode(PrimevalInviteEvent.serializer(), pri)
+            encoder.encodeSerializableValue(PrimevalInviteEvent.serializer(), pri)
         }
 
         override fun deserialize(decoder: Decoder): InviteEvent {
-            val input = decoder as? JsonInput ?: throw SerializationException("This class can be loaded only by Json")
-            val pri = decoder.decode(PrimevalInviteEvent.serializer())
+            val input = decoder as? JsonDecoder ?: throw SerializationException("This class can be loaded only by Json")
+            val pri = decoder.decodeSerializableValue(PrimevalInviteEvent.serializer())
+            val value = pri.content
             val content: Any = when (pri.type) {
-                RoomEventType.Member -> input.json.fromJson(RoomMemberContent.serializer(), pri.content)
-                RoomEventType.Name -> input.json.fromJson(RoomNameContent.serializer(), pri.content)
-                RoomEventType.CanonAlias -> input.json.fromJson(RoomCanonAliasContent.serializer(), pri.content)
-                RoomEventType.JoinRule -> input.json.fromJson(RoomJoinRulesContent.serializer(), pri.content)
-                RoomEventType.Topic -> input.json.fromJson(RoomTopicContent.serializer(), pri.content)
-                RoomEventType.Avatar -> input.json.fromJson(RoomAvatarContent.serializer(), pri.content)
+
+                RoomEventType.Member -> input.json.decodeFromJsonElement(RoomMemberContent.serializer(), value)
+                RoomEventType.Name -> input.json.decodeFromJsonElement(RoomNameContent.serializer(), value)
+                RoomEventType.CanonAlias -> input.json.decodeFromJsonElement(RoomCanonAliasContent.serializer(), value)
+                RoomEventType.JoinRule -> input.json.decodeFromJsonElement(RoomJoinRulesContent.serializer(), value)
+                RoomEventType.Topic -> input.json.decodeFromJsonElement(RoomTopicContent.serializer(), value)
+                RoomEventType.Avatar -> input.json.decodeFromJsonElement(RoomAvatarContent.serializer(), value)
                 else -> pri.content
             }
             return InviteEvent(sender =  pri.sender,

@@ -1,6 +1,11 @@
 package koma.matrix.room.naming
 
 import kotlinx.serialization.*
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.internal.StringDescriptor
 
 @Serializable
@@ -20,7 +25,7 @@ data class RoomAlias(val full: String) {
     @Serializer(forClass = RoomAlias::class)
     companion object : KSerializer<RoomAlias> {
         override val descriptor: SerialDescriptor =
-                PrimitiveDescriptor("RoomAlias", PrimitiveKind.STRING)
+                PrimitiveSerialDescriptor("RoomAlias", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: RoomAlias) {
             encoder.encodeString(obj.full)

@@ -16,7 +16,7 @@ object Dns {
          */
         override fun lookup(hostname: String): List<InetAddress> {
             val addrs = system.lookup(hostname)
-            addrs.sortBy { a -> addressPriority(a) }
+            addrs.sortedBy { a -> addressPriority(a) }
             logger.debug { "Dns answers sorted into $addrs" }
             return addrs
         }

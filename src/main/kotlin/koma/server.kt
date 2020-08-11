@@ -38,13 +38,13 @@ class Server(
 ) {
     val apiURL = url.newBuilder().addPathSegments(apiPath).build()
     val mediaUrl = url.newBuilder().addPathSegments(mediaPath).build()
-    internal val apiUrlPath = apiURL.pathSegments().filterNot { it.isEmpty() }.toTypedArray()
+    internal val apiUrlPath = apiURL.pathSegments.filterNot { it.isEmpty() }.toTypedArray()
     internal val apiUrlKtor = URLBuilder(apiURL.toString()).build()
     internal fun URLBuilder.buildPath(vararg pathSegments: String) {
         takeFrom(apiUrlKtor)
         path(*apiUrlPath, *pathSegments)
     }
-    internal val mediaPathSegments = url.pathSegments().toTypedArray().plus(arrayOf("_matrix", "media", "r0"))
+    internal val mediaPathSegments = url.pathSegments.toTypedArray().plus(arrayOf("_matrix", "media", "r0"))
 
     @Deprecated("moving toward multi-platform", ReplaceWith("okHttpClient"))
     val httpClient

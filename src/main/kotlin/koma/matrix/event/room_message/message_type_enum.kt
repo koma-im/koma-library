@@ -1,7 +1,11 @@
 package koma.matrix.event.room_message
 
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.StringDescriptor
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 @Serializable
 enum class RoomEventType{
@@ -50,15 +54,15 @@ enum class RoomEventType{
         private val enumStringMap = stringEnumMap.entries.associate { it.value to it.key }
         
         override val descriptor: SerialDescriptor =
-                PrimitiveDescriptor("RoomEventType", PrimitiveKind.STRING)
-        override fun serialize(encoder: Encoder, obj: RoomEventType) {
-            val s = enumStringMap[obj]
-            encoder.encodeString(s ?: obj.name)
+                PrimitiveSerialDescriptor("RoomEventType", PrimitiveKind.STRING)
+        override fun serialize(encoder: Encoder, value: RoomEventType) {
+            val s = enumStringMap[value]
+            encoder.encodeString(s ?: value.name)
         }
 
         override fun deserialize(decoder: Decoder): RoomEventType {
             val s = decoder.decodeString()
-            return stringEnumMap[s] ?: RoomEventType.Unknown
+            return stringEnumMap.get(s) ?: Unknown
         }
     }
 }

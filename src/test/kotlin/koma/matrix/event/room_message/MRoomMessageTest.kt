@@ -26,7 +26,7 @@ internal class MRoomMessageTest {
         "age": 1234
       }
     }"""
-        val msg = jsonDefault.parse(MRoomMessage.serializer(), msgText)
+        val msg = jsonDefault.decodeFromString(MRoomMessage.serializer(), msgText)
         assertEquals(RoomEventType.Message, msg.type)
         assertEquals(1432735824653, msg.origin_server_ts)
         assertEquals("!636q39766251:example.com", msg.room_id?.full)

@@ -25,9 +25,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runBlockingTest
-import kotlinx.serialization.MissingFieldException
-import kotlinx.serialization.json.JsonDecodingException
+import kotlinx.serialization.SerializationException as JsonDecodingException
 import mu.KotlinLogging
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -239,7 +237,7 @@ internal class MatrixApiTest {
         val url: HttpUrl = api.server.apiURL
         assertEquals(url.encodedPath+"publicRooms", req.requestUrl!!.encodedPath)
         val body = req.body.readUtf8()
-        val q1 = jsonDefault.parse(RoomDirectoryQuery.serializer(), body)
+        val q1 = jsonDefault.decodeFromString(RoomDirectoryQuery.serializer(), body)
         assertEquals(20, q1.limit)
         assertEquals(term, q1.filter!!.generic_search_term)
     }
@@ -418,7 +416,7 @@ internal class MatrixApiTest {
         assert(response.isFailure)
         val f1 = response.failureOrThrow()
         assert(f1 is InvalidData) { "fail $f1"}
-        assert((f1 as InvalidData).cause is MissingFieldException)
+        assert((f1 as InvalidData).cause is kotlinx.serialization.SerializationException)
 
         server.enqueue(MockResponse()
                 .setHeader("Content-Type", "application/json")

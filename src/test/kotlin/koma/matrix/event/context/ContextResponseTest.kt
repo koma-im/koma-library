@@ -9,7 +9,7 @@ internal class ContextResponseTest {
 
     @Test
     fun getEnd() {
-        val context = jsonDefault.parse(ContextResponse.serializer(), contextExample1)
+        val context = jsonDefault.decodeFromString(ContextResponse.serializer(), contextExample1)
     }
 
     private val contextExample1 = """{

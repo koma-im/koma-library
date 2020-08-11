@@ -13,11 +13,12 @@ import koma.matrix.json.jsonDefault
 import koma.matrix.json.jsonPretty
 import koma.matrix.room.naming.RoomId
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.StringDescriptor
-import kotlinx.serialization.json.JsonInput
-import kotlinx.serialization.json.JsonLiteral
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonOutput
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.*
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -30,13 +31,13 @@ sealed class RoomEvent: Comparable<RoomEvent>{
     abstract val type: RoomEventType
 
     fun stringifyPretty(): String {
-        return jsonPretty.stringify(RoomEvent.serializer(), this)
+        return jsonPretty.encodeToString(RoomEvent.serializer(), this)
     }
 
     companion object {
         fun parseOrNull(json: String): RoomEvent? {
             return try {
-                jsonDefault.parse(RoomEvent.serializer(), json)
+                jsonDefault.decodeFromString(RoomEvent.serializer(), json)
             } catch (e: Exception) {
                 logger.error { "Could not parse $json for $e"}
                 null
@@ -282,59 +283,60 @@ class MRoomGuestAccess(
 @Serializer(forClass = RoomEvent::class)
 internal class RoomEventSerializer: KSerializer<RoomEvent> {
     override val descriptor: SerialDescriptor =
-            PrimitiveDescriptor("RoomEvent", PrimitiveKind.STRING)
+            PrimitiveSerialDescriptor("RoomEvent", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: RoomEvent) {
         val obj = value
-        val output = encoder as? JsonOutput ?: throw SerializationException("This class can be saved only by Json, not $encoder")
+        val output = encoder as? JsonEncoder ?: throw SerializationException("This class can be saved only by Json, not $encoder")
         val tree = when (obj) {
-            is MRoomMessage-> output.json.toJson(MRoomMessage.serializer(), obj)
-            is MRoomMember -> output.json.toJson(MRoomMember.serializer(), obj)
-            is MRoomName-> output.json.toJson(MRoomName.serializer(), obj)
-            is MRoomAvatar -> output.json.toJson(MRoomAvatar.serializer(), obj)
-            is MRoomTopic -> output.json.toJson(MRoomTopic.serializer(), obj)
-            is MRoomHistoryVisibility -> output.json.toJson(MRoomHistoryVisibility.serializer(), obj)
-            is MRoomGuestAccess -> output.json.toJson(MRoomGuestAccess.serializer(), obj)
-            is MRoomCreate -> output.json.toJson(MRoomCreate.serializer(), obj)
-            is MRoomAliases -> output.json.toJson(MRoomAliases.serializer(), obj)
-            is MRoomCanonAlias -> output.json.toJson(MRoomCanonAlias.serializer(), obj)
-            is MRoomJoinRule -> output.json.toJson(MRoomJoinRule.serializer(), obj)
-            is MRoomPinnedEvents -> output.json.toJson(MRoomPinnedEvents.serializer(), obj)
-            is MRoomPowerLevels -> output.json.toJson(MRoomPowerLevels.serializer(), obj)
-            is MRoomRedaction -> output.json.toJson(MRoomRedaction.serializer(), obj)
-            is MRoomUnrecognized-> output.json.toJson(MRoomUnrecognized.serializer(), obj)
+            is MRoomMessage-> output.json.encodeToJsonElement(MRoomMessage.serializer(), obj)
+            is MRoomMember -> output.json.encodeToJsonElement(MRoomMember.serializer(), obj)
+            is MRoomName-> output.json.encodeToJsonElement(MRoomName.serializer(), obj)
+            is MRoomAvatar -> output.json.encodeToJsonElement(MRoomAvatar.serializer(), obj)
+            is MRoomTopic -> output.json.encodeToJsonElement(MRoomTopic.serializer(), obj)
+            is MRoomHistoryVisibility -> output.json.encodeToJsonElement(MRoomHistoryVisibility.serializer(), obj)
+            is MRoomGuestAccess -> output.json.encodeToJsonElement(MRoomGuestAccess.serializer(), obj)
+            is MRoomCreate -> output.json.encodeToJsonElement(MRoomCreate.serializer(), obj)
+            is MRoomAliases -> output.json.encodeToJsonElement(MRoomAliases.serializer(), obj)
+            is MRoomCanonAlias -> output.json.encodeToJsonElement(MRoomCanonAlias.serializer(), obj)
+            is MRoomJoinRule -> output.json.encodeToJsonElement(MRoomJoinRule.serializer(), obj)
+            is MRoomPinnedEvents -> output.json.encodeToJsonElement(MRoomPinnedEvents.serializer(), obj)
+            is MRoomPowerLevels -> output.json.encodeToJsonElement(MRoomPowerLevels.serializer(), obj)
+            is MRoomRedaction -> output.json.encodeToJsonElement(MRoomRedaction.serializer(), obj)
+            is MRoomUnrecognized-> output.json.encodeToJsonElement(MRoomUnrecognized.serializer(), obj)
         }
-        output.encodeJson(tree)
+        output.encodeJsonElement(tree)
     }
 
     override fun deserialize(decoder: Decoder): RoomEvent {
-        val input = decoder as? JsonInput ?: throw SerializationException("This class can be loaded only by Json")
-        var tree = input.decodeJson() as? JsonObject ?: throw SerializationException("Expected JsonObject")
-        val tsElement = tree.getPrimitive("origin_server_ts")
+        val input = decoder as? JsonDecoder ?: throw SerializationException("This class can be loaded only by Json")
+        var tree = input.decodeJsonElement() as? JsonObject ?: throw SerializationException("Expected JsonObject")
+        val tsElement = tree.getValue("origin_server_ts") as JsonPrimitive
         if (tsElement.longOrNull == null) {
-            val m = tree.content.toMutableMap()
-            val long = JsonLiteral(tsElement.double.toLong())
+            val m = tree.toMutableMap()
+            val long = JsonPrimitive(tsElement.double.toLong())
             m["origin_server_ts"] = long
             tree = JsonObject(m)
         }
-        val type = input.json.fromJson(RoomEventType.serializer(), tree.get("type")!!)
+        val type = input.json.decodeFromJsonElement(RoomEventType.serializer(), tree.get("type")!!)
+        val value = tree
         val event = when (type) {
-            RoomEventType.Message -> input.json.fromJson(MRoomMessage.serializer(), tree)
-            RoomEventType.Member -> input.json.fromJson(MRoomMember.serializer(), tree)
-            RoomEventType.Name -> input.json.fromJson(MRoomName.serializer(), tree)
-            RoomEventType.HistoryVisibility -> input.json.fromJson(MRoomHistoryVisibility.serializer(), tree)
-            RoomEventType.GuestAccess -> input.json.fromJson(MRoomGuestAccess.serializer(), tree)
-            RoomEventType.Create -> input.json.fromJson(MRoomCreate.serializer(), tree)
-            RoomEventType.Aliases -> input.json.fromJson(MRoomAliases.serializer(), tree)
-            RoomEventType.CanonAlias -> input.json.fromJson(MRoomCanonAlias.serializer(), tree)
-            RoomEventType.JoinRule -> input.json.fromJson(MRoomJoinRule.serializer(), tree)
-            RoomEventType.PinnedEvents -> input.json.fromJson(MRoomPinnedEvents.serializer(), tree)
-            RoomEventType.PowerLevels -> input.json.fromJson(MRoomPowerLevels.serializer(), tree)
-            RoomEventType.Redaction -> input.json.fromJson(MRoomRedaction.serializer(), tree)
-            RoomEventType.Unknown-> input.json.fromJson(MRoomUnrecognized.serializer(), tree)
-            RoomEventType.Topic -> input.json.fromJson(MRoomTopic.serializer(), tree)
-            RoomEventType.Avatar -> input.json.fromJson(MRoomAvatar.serializer(), tree)
-            RoomEventType.BotOptions -> input.json.fromJson(MRoomUnrecognized.serializer(), tree)
+            RoomEventType.Message -> input.json.decodeFromJsonElement(MRoomMessage.serializer(), value)
+            RoomEventType.Member -> input.json.decodeFromJsonElement(MRoomMember.serializer(), value)
+            RoomEventType.Name -> input.json.decodeFromJsonElement(MRoomName.serializer(), value)
+            RoomEventType.HistoryVisibility -> input.json.decodeFromJsonElement(MRoomHistoryVisibility.serializer(), value)
+            RoomEventType.GuestAccess -> input.json.decodeFromJsonElement(MRoomGuestAccess.serializer(), value)
+            RoomEventType.Create -> input.json.decodeFromJsonElement(MRoomCreate.serializer(), value)
+            RoomEventType.Aliases -> input.json.decodeFromJsonElement(MRoomAliases.serializer(), value)
+            RoomEventType.CanonAlias -> input.json.decodeFromJsonElement(MRoomCanonAlias.serializer(), value)
+            RoomEventType.JoinRule -> input.json.decodeFromJsonElement(MRoomJoinRule.serializer(), value)
+            RoomEventType.PinnedEvents -> input.json.decodeFromJsonElement(MRoomPinnedEvents.serializer(), value)
+            RoomEventType.PowerLevels -> input.json.decodeFromJsonElement(MRoomPowerLevels.serializer(), value)
+            RoomEventType.Redaction -> input.json.decodeFromJsonElement(MRoomRedaction.serializer(), value)
+            RoomEventType.Unknown-> input.json.decodeFromJsonElement(MRoomUnrecognized.serializer(), value)
+            RoomEventType.Topic -> input.json.decodeFromJsonElement(MRoomTopic.serializer(), value)
+            RoomEventType.Avatar -> input.json.decodeFromJsonElement(MRoomAvatar.serializer(), value)
+            RoomEventType.BotOptions -> input.json.decodeFromJsonElement(MRoomUnrecognized.serializer(), value)
         }
         return event
     }

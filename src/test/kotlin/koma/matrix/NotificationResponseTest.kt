@@ -2,6 +2,7 @@ package koma.matrix
 
 import koma.matrix.json.jsonDefault
 import kotlinx.serialization.json.content
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
@@ -9,26 +10,26 @@ import kotlin.test.assertEquals
 internal class NotificationResponseTest {
     @Test
     fun deserializeNotificationResponse() {
-        val notification1 = jsonDefault.parse(NotificationResponse.serializer(), example1)
+        val notification1 = jsonDefault.decodeFromString(NotificationResponse.serializer(), example1)
         assertEquals("abcdef", notification1.next_token)
         assertEquals(1, notification1.notifications.size)
         val notif1 = notification1.notifications[0]
         assertEquals(1, notif1.actions.size)
         val action = notif1.actions[0]
-        assertEquals("notify", action.content)
+        assertEquals("notify", action.jsonPrimitive.content)
         assertEquals("hcbvkzxhcvb", notif1.profile_tag)
         assert(notif1.read)
         assertEquals(1475508881945, notif1.ts)
         assertEquals("""$143273582443PhrSn:example.org""", notif1.event.event_id)
 
-        val notifRes2 = jsonDefault.parse(NotificationResponse.serializer(), exampl2)
+        val notifRes2 = jsonDefault.decodeFromString(NotificationResponse.serializer(), exampl2)
         assertEquals("1000116789", notifRes2.next_token)
     }
 
     @Test
     fun deserializeNotification() {
-        jsonDefault.parse(NotificationResponse.Notification.serializer(), notificationString1)
-        val notif2 = jsonDefault.parse(NotificationResponse.Notification.serializer(), notificationString2)
+        jsonDefault.decodeFromString(NotificationResponse.Notification.serializer(), notificationString1)
+        val notif2 = jsonDefault.decodeFromString(NotificationResponse.Notification.serializer(), notificationString2)
         assertEquals("!room2:example.com", notif2.room_id.full)
         val event = notif2.event
         assertEquals( "$156141234550951DWylX:example.com", notif2.event.event_id)

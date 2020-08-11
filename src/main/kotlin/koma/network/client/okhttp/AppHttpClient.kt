@@ -57,12 +57,12 @@ private class RetryGetPeerCert: Interceptor {
                 val res = chain.proceed(req)
                 return res
             } catch (e: IndexOutOfBoundsException) {
-                logger.error { "Request ${req.url()} got $e, retry $i" }
+                logger.error { "Request ${req.url} got $e, retry $i" }
                 continue
             }
 
         }
-        logger.error { "Request ${req.url()} aborted" }
+        logger.error { "Request ${req.url} aborted" }
         val res = Response.Builder()
                 .code(404)
                 .build()
@@ -81,8 +81,8 @@ internal class CloseTimeoutSocketListener(
     override fun connectStart(call: okhttp3.Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
         isNewConn = true
         logger.debug {
-            val u = call.request().url()
-            "$id is new conn to host=${u.host()} path=${u.encodedPath()} addr=$inetSocketAddress via $proxy"
+            val u = call.request().url
+            "$id is new conn to host=${u.host} path=${u.encodedPath} addr=$inetSocketAddress via $proxy"
         }
     }
 
@@ -93,7 +93,7 @@ internal class CloseTimeoutSocketListener(
     override fun callFailed(call: okhttp3.Call, ioe: IOException) {
         if (!isNewConn && ioe is SocketTimeoutException) {
             connection?.run {
-                logger.debug { "call $id to ${call.request().url()} in pool timed out, closing socket" }
+                logger.debug { "call $id to ${call.request().url} in pool timed out, closing socket" }
                 val s = this.socket()
                 GlobalScope.launch(Dispatchers.IO) {
                     try {
@@ -106,8 +106,8 @@ internal class CloseTimeoutSocketListener(
             }?: logger.error { "connection unknown" }
         } else {
             logger.debug {
-                val u = call.request().url()
-                "call $id host=${u.host()} path=${u.encodedPath()} fail $ioe"
+                val u = call.request().url
+                "call $id host=${u.host} path=${u.encodedPath} fail $ioe"
             }
         }
     }
